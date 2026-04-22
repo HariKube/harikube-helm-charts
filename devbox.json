@@ -1,0 +1,22 @@
+{
+    "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.0/.schema/devbox.schema.json",
+    "packages": [
+      "yamllint@1.37.1",
+      "kind@0.30.0",
+      "kyverno-chainsaw@0.2.13",
+      "kubernetes-helm@3.19.1",
+      "kubeconform@0.7.0",
+      "kubectl@1.34.3"
+    ],
+    "shell": {
+      "init_hook": [
+        "echo 'Welcome to devbox!' > /dev/null"
+      ],
+      "scripts": {
+        "test": [
+          "echo \"Error: no test specified\" && exit 1"
+        ]
+      }
+    }
+  }
+  

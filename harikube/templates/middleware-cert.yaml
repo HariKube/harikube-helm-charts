@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-middleware-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-middleware-crt
+spec:
+  dnsNames:
+  - harikube-middleware-svc.{{ .Release.Namespace }}
+  - harikube-middleware-svc.{{ .Release.Namespace }}.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: harikube-middleware-issuer
+  secretName: harikube-middleware-crt

@@ -1,0 +1,310 @@
+# Default values for harikube.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+imagePullSecrets:
+- harikube-registry-secret
+
+middleware:
+  image:
+    repository: registry.harikube.info/harikube/middleware
+    pullPolicy: IfNotPresent
+    tag: "release-v1.0.3"
+  env:
+  - name: TOPOLOGY_CONFIG
+    value: secret://harikube/topology-config
+  # - name: TOPOLOGY_CONFIG_TLS_DIR
+  #   value: ./db/tls
+  - name: LICENSE_KEY_FILE
+    value: /etc/harikube/license
+  # - name: LIST_MAX_ITEMS
+  #   value: "10000"
+  # - name: CUSTOM_RESOURCE_DEFINITION_METADATA_FILE
+  #   value: ./db/crds.json
+  # - name: GARBAGE_COLLECTION_DIR
+  #   value: ./db/garbage-collector
+  # - name: GARBAGE_COLLECTION_EXIT_ON_ERROR
+  #   value: "false"
+  # - name: REVISION_MAPPER
+  #   value: "bbolt"
+  # - name: REVISION_MAPPER_BBOLT_O2G_PATHS
+  #   value: ./db
+  # - name: REVISION_MAPPER_BBOLT_G2O_PATHS
+  #   value: ./db
+  # - name: REVISION_MAPPER_BBOLT_LEASE_PATH
+  #   value: ./db
+  # - name: REVISION_MAPPER_BBOLT_SYNC_PERIOD
+  #   value: 0s
+  # - name: REVISION_MAPPER_BBOLT_BATCH_SIZE
+  #   value: "1"
+  # - name: REVISION_MAPPER_BBOLT_WRITE_QUEUE
+  #   value: "1"
+  # - name: REVISION_MAPPER_SQLITE_O2G_PATHS
+  #   value: ./db
+  # - name: REVISION_MAPPER_SQLITE_G2O_PATHS
+  #   value: ./db
+  # - name: REVISION_MAPPER_SQLITE_LEASE_PATH
+  #   value: ./db
+  # - name: REVISION_MAPPER_SQLITE_SYNCHRONOUS
+  #   value: OFF
+  # - name: REVISION_MAPPER_SQLITE_WRITE_QUEUE
+  #   value: ./db
+  # - name: REVISION_MAPPER_SQLITE_MAX_CONNECTIONS
+  #   value: "1"
+  - name: ENABLE_TELEMETRY_PUSH
+    value: "false"
+  args:
+  # - --debug=true
+  - --log-format=json
+  # - --emulated-etcd-version=3.5.13
+  - --listen-address=0.0.0.0:2379
+  - --metrics-bind-address=:8080
+  - --server-cert-file=/etc/harikube-middleware-crt/server.crt
+  - --server-key-file=/etc/harikube-middleware-crt/server.key
+  # - --metrics-enable-profiling=true
+  # - --metrics-ignore-tls-config=true
+  - --slow-sql-threshold=2s
+  # - --slow-sql-warning-threshold=5s
+  - --datastore-max-idle-connections=50
+  - --datastore-max-open-connections=90
+  - --datastore-connection-max-lifetime=5m
+  - --datastore-connection-max-idle-lifetime=5m
+  - --endpoint=multi://sqlite:///db/main.db?_journal=WAL&cache=shared
+  # - --ca-file=/etc/db/tls/database.ca
+  # - --cert-file=/etc/db/tls/database.crt
+  # - --key-file=/etc/db/tls/database.key
+  # - --skip-verify=true
+  # - --watch-progress-notify-interval=5s
+  # - --compact-interval=5m
+  # - --compact-interval-jitter=0
+  # - --compact-timeout=5s
+  # - --compact-min-retain=1000
+  # - --compact-batch-size=1000
+  # - --poll-batch-size=500
+  podAnnotations: {}
+  podLabels:
+    app: harikube-middleware
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    apiPort:
+      type: ClusterIP
+      port: 2379
+    metrics:
+      type: ClusterIP
+      port: 8080
+  resources:
+    limits:
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+  livenessProbe:
+    httpGet:
+      scheme: HTTP
+      port: 8080
+      path: /metrics
+    initialDelaySeconds: 15
+    timeoutSeconds: 5
+    periodSeconds: 20
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      scheme: HTTP
+      port: 8080
+      path: /metrics
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+    periodSeconds: 10
+    failureThreshold: 3
+  volumes:
+  - name: license
+    secret:
+      secretName: harikube-license
+  - name: harikube-middleware-crt
+    secret:
+      secretName: harikube-middleware-crt
+  # - name: harikube-endpoint-tls
+  #   secret:
+  #     secretName: harikube-endpoint-tls
+  - name: harikube-middleware-pvc
+    persistentVolumeClaim:
+      claimName: harikube-middleware-pvc
+  - name: tmp
+    emptyDir: {}
+  volumeMounts:
+  - name: license
+    mountPath: /etc/harikube
+    readOnly: true
+  - name: harikube-middleware-crt
+    mountPath: /etc/harikube-middleware-crt
+    readOnly: true
+  # - name: harikube-endpoint-tls
+  #   mountPath: /etc/db/tls
+  #   readOnly: true
+  - name: harikube-middleware-pvc
+    mountPath: /db
+  - name: tmp
+    mountPath: /tmp
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+                - arm64
+                - amd64
+                - s390x
+                - ppc64le
+            - key: kubernetes.io/os
+              operator: In
+              values:
+                - linux
+  pvc:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 5Gi
+    # storageClassName: default
+  monitoring:
+    create: true
+  networkPolicy:
+    create: true
+
+operator:
+  # Specifies whether the operator should be created
+  create: true
+  image:
+    repository: registry.harikube.info/harikube/operator
+    pullPolicy: IfNotPresent
+    tag: "release-v1.0.1"
+  args:
+  - --metrics-bind-address=:8443
+  - --leader-elect
+  # - --enable-http2=true
+  - --health-probe-bind-address=:8081
+  - --metrics-secure
+  # - --metrics-cert-path=harikube-operator-metrics-crt
+  # - --metrics-cert-name=tls.crt
+  # - --metrics-cert-key=tls.key
+  - --webhook-cert-path=/etc/harikube-operator-crt
+  # - --webhook-cert-name=tls.crt
+  # - --webhook-cert-key=tls.key
+  podAnnotations: {}
+  podLabels:
+    app: harikube
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    webhook:
+      type: ClusterIP
+      port: 9443
+    metrics:
+      type: ClusterIP
+      port: 8443
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  livenessProbe:
+    httpGet:
+      scheme: HTTP
+      port: 8081
+      path: /healthz
+    initialDelaySeconds: 15
+    timeoutSeconds: 5
+    periodSeconds: 20
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      scheme: HTTP
+      port: 8081
+      path: /readyz
+    initialDelaySeconds: 5
+    timeoutSeconds: 3
+    periodSeconds: 10
+    failureThreshold: 3
+  volumes:
+  - emptyDir: {}
+    name: tmp
+  - name: harikube-operator-crt
+    secret:
+      secretName: harikube-operator-crt
+  # - name: harikube-operator-metrics-crt
+  #   secret:
+  #     secretName: harikube-operator-metrics-crt
+  volumeMounts:
+  - mountPath: /tmp
+    name: tmp
+  - mountPath: /etc/harikube-operator-crt
+    name: harikube-operator-crt
+    readOnly: true
+  # - mountPath: /etc/harikube-operator-metrics-crt
+  #   name: harikube-operator-metrics-crt
+  #   readOnly: true
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/arch
+              operator: In
+              values:
+                - arm64
+                - amd64
+                - s390x
+                - ppc64le
+            - key: kubernetes.io/os
+              operator: In
+              values:
+                - linux
+  serviceAccount:
+    annotations: {}
+  monitoring:
+    create: true
+  networkPolicy:
+    create: true

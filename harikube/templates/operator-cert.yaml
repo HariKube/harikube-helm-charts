@@ -1,0 +1,42 @@
+{{- if .Values.operator.create -}}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-operator-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-operator-crt
+spec:
+  dnsNames:
+  - harikube-operator-svc.{{ .Release.Namespace }}.svc
+  - harikube-operator-svc.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: harikube-operator-issuer
+  secretName: harikube-operator-crt
+{{ if .Values.operator.monitoring.create }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-operator-metrics-crt
+spec:
+  dnsNames:
+  - harikube-operator-metrics-svc.{{ .Release.Namespace }}.svc
+  - harikube-operator-metrics-svc.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: harikube-operator-issuer
+  secretName: harikube-operator-metrics-crt
+{{ end }}
+{{- end }}

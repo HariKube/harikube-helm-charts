@@ -1,0 +1,33 @@
+{{- if .Values.middleware.monitoring.create -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-middleware-sm
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    path: /metrics
+    port: {{ .Values.middleware.service.metrics.port }}
+    scheme: https
+    tlsConfig:
+      ca:
+        secret:
+          key: ca.crt
+          name: harikube-middleware-metrics-crt
+      cert:
+        secret:
+          key: tls.crt
+          name: harikube-middleware-metrics-crt
+      insecureSkipVerify: false
+      keySecret:
+        key: tls.key
+        name: harikube-middleware-metrics-crt
+      serverName: harikube-middleware-metrics-svc.{{ .Release.Namespace }}.svc
+  selector:
+    matchLabels:
+    {{- with .Values.middleware.podLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

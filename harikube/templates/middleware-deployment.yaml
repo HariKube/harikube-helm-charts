@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+  name: harikube-middleware-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- with .Values.middleware.podLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  template:
+    metadata:
+      {{- with .Values.middleware.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "harikube.labels" . | nindent 8 }}
+        {{- with .Values.middleware.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.middleware.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.middleware.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.middleware.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.middleware.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      containers:
+      - name: middleware
+        image: "{{ .Values.middleware.image.repository }}:{{ .Values.middleware.image.tag }}"
+        imagePullPolicy: {{ .Values.middleware.image.pullPolicy }}
+        env:
+          {{- toYaml .Values.middleware.env | nindent 8 }}
+        args:
+          {{- toYaml .Values.middleware.args | nindent 8 }}
+        ports:
+        - containerPort: {{ .Values.middleware.service.apiPort.port }}
+          name: api-port
+        - containerPort: {{ .Values.middleware.service.metrics.port }}
+          name: metrics
+          {{- with .Values.volumeMounts }}
+        volumeMounts:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        livenessProbe:
+          {{- toYaml .Values.middleware.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- toYaml .Values.middleware.readinessProbe | nindent 12 }}
+        securityContext:
+          {{- toYaml .Values.middleware.securityContext | nindent 12 }}
+        resources:
+          {{- toYaml .Values.middleware.resources | nindent 12 }}
+      {{- with .Values.middleware.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
