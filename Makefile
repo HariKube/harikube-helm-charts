@@ -9,7 +9,7 @@ lint:
 
 .PHONY: render
 render:
-	helm template harikube ./harikube
+	@helm template harikube ./harikube
 
 .PHONY: setup-test
 setup-test: cleanup-test
@@ -59,7 +59,6 @@ _test-e2e:
 		--set controlPlane.distro.k8s.image.tag=v1.35.3
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
 
-	vcluster connect harikube-vcluster
 	chainsaw test --test-dir test/integration
 
 .PHONY: cleanup-test

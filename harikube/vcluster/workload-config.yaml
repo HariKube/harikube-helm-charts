@@ -13,6 +13,9 @@ controlPlane:
         - --feature-gates=WatchList=true,WatchListClient=true,VolumeAttributesClass=true,MutatingAdmissionPolicy=true
         - --watch-cache=false
         - --etcd-servers=https://harikube-middleware-svc.harikube:2379
+        - --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt
+        - --etcd-certfile=/etc/kubernetes/pki/etcd/tls.crt
+        - --etcd-keyfile=/etc/kubernetes/pki/etcd/tls.key
         - --runtime-config=admissionregistration.k8s.io/v1beta1=true
         - --storage-media-type=application/json
         - --max-requests-inflight=900
@@ -33,6 +36,22 @@ controlPlane:
   statefulSet:
     highAvailability:
       replicas: 1
+    persistence:
+      addVolumes:
+      - name: etcd-certs
+        secret:
+          secretName: harikube-middleware-crt
+          items:
+          - key: ca.crt
+            path: ca.crt
+          - key: tls.crt
+            path: tls.crt
+          - key: tls.key
+            path: tls.key
+      addVolumeMounts:
+        - name: etcd-certs
+          mountPath: /etc/kubernetes/pki/etcd
+          readOnly: true
 sync:
   toHost:
     pods:
