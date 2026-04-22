@@ -9,7 +9,7 @@ middleware:
   image:
     repository: registry.harikube.info/harikube/middleware
     pullPolicy: IfNotPresent
-    tag: "release-v1.0.3"
+    tag: release-v1.0.3
   env:
   - name: TOPOLOGY_CONFIG
     value: secret://harikube/topology-config
@@ -59,8 +59,8 @@ middleware:
   # - --emulated-etcd-version=3.5.13
   - --listen-address=0.0.0.0:2379
   - --metrics-bind-address=:8080
-  - --server-cert-file=/etc/harikube-middleware-crt/server.crt
-  - --server-key-file=/etc/harikube-middleware-crt/server.key
+  - --server-cert-file=/etc/harikube-middleware-crt/tls.crt
+  - --server-key-file=/etc/harikube-middleware-crt/tls.key
   # - --metrics-enable-profiling=true
   # - --metrics-ignore-tls-config=true
   - --slow-sql-threshold=2s
@@ -118,7 +118,7 @@ middleware:
       memory: 1Gi
   livenessProbe:
     httpGet:
-      scheme: HTTP
+      scheme: HTTPS
       port: 8080
       path: /metrics
     initialDelaySeconds: 15
@@ -127,7 +127,7 @@ middleware:
     failureThreshold: 3
   readinessProbe:
     httpGet:
-      scheme: HTTP
+      scheme: HTTPS
       port: 8080
       path: /metrics
     initialDelaySeconds: 5
@@ -199,14 +199,14 @@ operator:
   image:
     repository: registry.harikube.info/harikube/operator
     pullPolicy: IfNotPresent
-    tag: "release-v1.0.1"
+    tag: release-v1.0.2
   args:
   - --metrics-bind-address=:8443
   - --leader-elect
   # - --enable-http2=true
   - --health-probe-bind-address=:8081
   - --metrics-secure
-  # - --metrics-cert-path=harikube-operator-metrics-crt
+  # - --metrics-cert-path=/etc/harikube-operator-metrics-crt
   # - --metrics-cert-name=tls.crt
   # - --metrics-cert-key=tls.key
   - --webhook-cert-path=/etc/harikube-operator-crt

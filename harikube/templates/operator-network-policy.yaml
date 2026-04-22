@@ -17,7 +17,7 @@ spec:
   podSelector:
     matchLabels:
     {{- with .Values.operator.podLabels }}
-    {{- toYaml . | nindent 4 }}
+    {{- toYaml . | nindent 6 }}
     {{- end }}
   policyTypes:
   - Ingress
@@ -41,7 +41,7 @@ spec:
   podSelector:
     matchLabels:
     {{- with .Values.operator.podLabels }}
-    {{- toYaml . | nindent 4 }}
+    {{- toYaml . | nindent 6 }}
     {{- end }}
   policyTypes:
   - Ingress

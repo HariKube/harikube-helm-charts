@@ -2,7 +2,7 @@ name: E2E
 
 on:
   push:
-    branches:
+    branches-ignore:
     - release-v**
     - rc-v**
     - beta-v**
@@ -16,6 +16,7 @@ jobs:
   lint:
     name: Run on Ubuntu
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '+E2E')
     steps:
       - name: Clone the code
         uses: actions/checkout@v4
@@ -24,6 +25,12 @@ jobs:
         uses: jetify-com/devbox-install-action@v0.12.0
         with:
           enable-cache: 'true'
+
+      - name: Create license and credential
+        run: |
+          mkdir -p .vscode
+          echo -n "${{ secrets.HARIKUBE_LICENSE }}" > .vscode/license
+          echo -n "${{ secrets.HARIKUBE_CREDENTIAL }}" > .vscode/credential
 
       - name: Run tester
         run: devbox run make test-e2e

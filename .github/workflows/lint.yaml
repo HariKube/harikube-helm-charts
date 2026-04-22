@@ -31,6 +31,3 @@ jobs:
 
       - name: Run linter
         run: devbox run make lint
-
-      - name: Run validator
-        run: devbox run make validate

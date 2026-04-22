@@ -1,0 +1,123 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: simple
+spec:
+  skipDelete: true
+  steps:
+  - name: Create topology config
+    try:
+    - apply:
+        timeout: 30s
+        resource:
+          apiVersion: harikube.info/v1
+          kind: TopologyConfig
+          metadata:
+            annotations:
+              harikube.info/deployOrder: "1"
+            name: topologyconfig-shirts
+          spec:
+            targetSecret: default/topology-config
+            backends:
+            - name: shirts
+              endpoint: mysql://root:passwd@tcp(172.17.0.1:33061)/kine_db
+              connectionPool:
+                maxIdle: 5
+                maxOpen: 90
+                maxLifeTime: 5m
+                maxIdleLifeTime: 5m
+              customresource:
+                group: stable.example.com
+                kind: shirts
+    - apply:
+        resource:
+          apiVersion: harikube.info/v1
+          kind: TopologyConfig
+          metadata:
+            annotations:
+              harikube.info/deployOrder: "2"
+            name: topologyconfig-namespace
+          spec:
+            targetSecret: default/topology-config
+            backends:
+            - name: namespace
+              endpoint: sqlite://./db/namespace.db?_journal=WAL&cache=shared
+              namespace:
+                namespace: test
+    - assert:
+        resource:
+          apiVersion: harikube.info/v1
+          kind: TopologyConfig
+          metadata:
+            name: topologyconfig-shirts
+          status:
+            deployOrder: 1
+            deployStatus: Active
+    - assert:
+        resource:
+          apiVersion: harikube.info/v1
+          kind: TopologyConfig
+          metadata:
+            name: topologyconfig-namespace
+          status:
+            deployOrder: 2
+            deployStatus: Active
+    - assert:
+        resource:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: topology-config
+            namespace: default
+            finalizers:
+            - harikube.info/finalizer
+          data:
+            (base64_decode("1-topologyconfig-shirts.yaml")): |
+              backends:
+              - name: shirts
+                endpoint: mysql://root:passwd@tcp(172.17.0.1:33061)/kine_db
+                connectionPool:
+                  maxIdle: 5
+                  maxOpen: 90
+                  maxLifeTime: 5m0s
+                  maxIdleLifeTime: 5m0s
+                customresource:
+                  group: stable.example.com
+                  kind: shirts
+            (base64_decode("2-topologyconfig-namespace.yaml")): |
+              backends:
+              - name: namespace
+                endpoint: sqlite://./db/namespace.db?_journal=WAL&cache=shared
+                namespace:
+                  namespace: test
+                  kinds: []
+    - sleep:
+        duration: 10s
+  - name: Create custom resource
+    try:
+    - apply:
+        file: https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/customresourcedefinition/shirt-resource-definition.yaml
+    - assert:
+        resource:
+          apiVersion: apiextensions.k8s.io/v1
+          kind: CustomResourceDefinition
+          metadata:
+            name: shirts.stable.example.com
+    - apply:
+        resource:
+          apiVersion: stable.example.com/v1
+          kind: Shirt
+          metadata:
+            name: example1
+          spec:
+            color: blue
+            size: S
+    - assert:
+        resource:
+          apiVersion: stable.example.com/v1
+          kind: Shirt
+          metadata:
+            name: example1
+    - script:
+        content: |
+          docker exec harikube-chainsaw-mysql mysql -uroot -ppasswd -N kine_db -e "select name from kine where name like '%example1%';" | grep -q example1

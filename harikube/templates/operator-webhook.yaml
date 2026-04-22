@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   annotations:
-    cert-manager.io/inject-ca-from: harikube/operator-serving-cert
+    cert-manager.io/inject-ca-from: harikube/harikube-operator-crt
   name: harikube-operator-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
