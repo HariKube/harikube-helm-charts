@@ -36,7 +36,7 @@ spec:
       {{- end }}
       {{- with .Values.operator.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 6 }}
       {{- end }}
       securityContext:
         {{- toYaml .Values.operator.podSecurityContext | nindent 8 }}
@@ -55,9 +55,9 @@ spec:
         ports:
         - containerPort: {{ .Values.operator.service.webhook.port }}
           name: webhook
-          {{- with .Values.volumeMounts }}
+          {{- with .Values.operator.volumeMounts }}
         volumeMounts:
-          {{- toYaml . | nindent 12 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
         livenessProbe:
           {{- toYaml .Values.operator.livenessProbe | nindent 10 }}

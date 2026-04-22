@@ -1,8 +1,8 @@
-name: Test
+name: E2E
 
 on:
   push:
-    branches-ignore:
+    branches:
     - release-v**
     - rc-v**
     - beta-v**
@@ -11,10 +11,6 @@ on:
 
   pull_request:
     branches: [main]
-
-concurrency: 
-  group: ${{ github.ref_name }}-test
-  cancel-in-progress: true
   
 jobs:
   lint:
@@ -30,4 +26,4 @@ jobs:
           enable-cache: 'true'
 
       - name: Run tester
-        run: devbox run make test-integration
+        run: devbox run make test-e2e

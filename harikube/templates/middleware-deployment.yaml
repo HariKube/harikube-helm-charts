@@ -34,7 +34,7 @@ spec:
       {{- end }}
       {{- with .Values.middleware.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 6 }}
       {{- end }}
       securityContext:
         {{- toYaml .Values.middleware.podSecurityContext | nindent 8 }}
@@ -55,9 +55,9 @@ spec:
           name: api-port
         - containerPort: {{ .Values.middleware.service.metrics.port }}
           name: metrics
-          {{- with .Values.volumeMounts }}
+          {{- with .Values.middleware.volumeMounts }}
         volumeMounts:
-          {{- toYaml . | nindent 12 }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
         livenessProbe:
           {{- toYaml .Values.middleware.livenessProbe | nindent 10 }}
