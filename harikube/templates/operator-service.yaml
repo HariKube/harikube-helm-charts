@@ -8,10 +8,10 @@ metadata:
 spec:
   type: {{ .Values.operator.service.webhook.type }}
   ports:
-    - port: {{ .Values.operator.service.webhook.port }}
-      targetPort: {{ .Values.operator.service.webhook.port }}
-      protocol: TCP
-      name: webhook
+  - port: {{ .Values.operator.service.webhook.port }}
+    targetPort: {{ .Values.operator.service.webhook.port }}
+    protocol: TCP
+    name: webhook
   selector:
     {{- with .Values.operator.podLabels }}
     {{- toYaml . | nindent 4 }}
@@ -28,10 +28,10 @@ metadata:
 spec:
   type: {{ .Values.operator.service.metrics.type }}
   ports:
-    - port: {{ .Values.operator.service.metrics.port }}
-      targetPort: {{ .Values.operator.service.metrics.port }}
-      protocol: TCP
-      name: metrics
+  - port: {{ .Values.operator.service.metrics.port }}
+    targetPort: {{ .Values.operator.service.metrics.port }}
+    protocol: TCP
+    name: metrics
   selector:
     {{- with .Values.operator.podLabels }}
     {{- toYaml . | nindent 4 }}

@@ -60,14 +60,14 @@ spec:
           {{- toYaml . | nindent 12 }}
         {{- end }}
         livenessProbe:
-          {{- toYaml .Values.middleware.livenessProbe | nindent 12 }}
+          {{- toYaml .Values.middleware.livenessProbe | nindent 10 }}
         readinessProbe:
-          {{- toYaml .Values.middleware.readinessProbe | nindent 12 }}
+          {{- toYaml .Values.middleware.readinessProbe | nindent 10 }}
         securityContext:
-          {{- toYaml .Values.middleware.securityContext | nindent 12 }}
+          {{- toYaml .Values.middleware.securityContext | nindent 10 }}
         resources:
-          {{- toYaml .Values.middleware.resources | nindent 12 }}
+          {{- toYaml .Values.middleware.resources | nindent 10 }}
       {{- with .Values.middleware.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 6 }}
       {{- end }}

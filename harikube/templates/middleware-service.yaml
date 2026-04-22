@@ -7,10 +7,10 @@ metadata:
 spec:
   type: {{ .Values.middleware.service.apiPort.type }}
   ports:
-    - port: {{ .Values.middleware.service.apiPort.port }}
-      targetPort: {{ .Values.middleware.service.apiPort.port }}
-      protocol: TCP
-      name: api-port
+  - port: {{ .Values.middleware.service.apiPort.port }}
+    targetPort: {{ .Values.middleware.service.apiPort.port }}
+    protocol: TCP
+    name: api-port
   selector:
     {{- with .Values.middleware.podLabels }}
     {{- toYaml . | nindent 4 }}
@@ -27,10 +27,10 @@ metadata:
 spec:
   type: {{ .Values.middleware.service.metrics.type }}
   ports:
-    - port: {{ .Values.middleware.service.metrics.port }}
-      targetPort: {{ .Values.middleware.service.metrics.port }}
-      protocol: TCP
-      name: metrics
+  - port: {{ .Values.middleware.service.metrics.port }}
+    targetPort: {{ .Values.middleware.service.metrics.port }}
+    protocol: TCP
+    name: metrics
   selector:
     {{- with .Values.middleware.podLabels }}
     {{- toYaml . | nindent 4 }}
