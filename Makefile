@@ -54,8 +54,7 @@ _test-e2e:
 		--debug \
 		--version 0.32.1 \
 		--namespace $(NAMESPACE) \
-		--values harikube/vcluster/workload-config.yaml \
-		--set controlPlane.distro.k8s.image.tag=v1.35.3
+		--values harikube/vcluster/workload-config.yaml
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
 
 	chainsaw test --test-dir test/integration/00-topology-config
