@@ -88,6 +88,7 @@ sync:
       mappings:
         byName:
           "harikube/topology-config": "harikube/topology-config"
+          "harikube/harikube-middleware-crt": "harikube/harikube-middleware-crt"
 networking:
   replicateServices:
     fromHost:
