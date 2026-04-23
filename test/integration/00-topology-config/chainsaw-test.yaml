@@ -1,14 +1,74 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: simple
+  name: topology-config
 spec:
   skipDelete: true
+  namespace: harikube
+  timeouts:
+    apply: 30s
+    assert: 1m
   steps:
+  - name: Create database
+    try:
+    - apply:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mysql-deployment
+            namespace: harikube
+            labels:
+              app: mariadb
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: mariadb
+            template:
+              metadata:
+                labels:
+                  app: mariadb
+              spec:
+                containers:
+                - name: mariadb
+                  image: ghcr.io/linuxserver/mariadb:10.11.8
+                  ports:
+                  - containerPort: 3306
+                  env:
+                  - name: MYSQL_ROOT_PASSWORD
+                    value: "passwd"
+                  - name: TZ
+                    value: "Europe/Budapest"
+    - apply:
+        resource:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: mysql-internal-service
+            namespace: harikube
+          spec:
+            type: ClusterIP 
+            selector:
+              app: mariadb
+            ports:
+              - protocol: TCP
+                port: 3306
+                targetPort: 3306
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mysql-deployment
+            namespace: harikube
+          status:
+            readyReplicas: 1
+    - sleep:
+        duration: 30s
   - name: Create topology config
     try:
     - apply:
-        timeout: 30s
         resource:
           apiVersion: harikube.info/v1
           kind: TopologyConfig
@@ -16,11 +76,12 @@ spec:
             annotations:
               harikube.info/deployOrder: "1"
             name: topologyconfig-shirts
+            namespace: harikube
           spec:
-            targetSecret: default/topology-config
+            targetSecret: harikube/topology-config
             backends:
             - name: shirts
-              endpoint: mysql://root:passwd@tcp(172.17.0.1:33061)/kine_db
+              endpoint: mysql://root:passwd@tcp(mysql-internal-service.harikube.svc.cluster.local:3306)/kine_db
               connectionPool:
                 maxIdle: 5
                 maxOpen: 90
@@ -37,8 +98,9 @@ spec:
             annotations:
               harikube.info/deployOrder: "2"
             name: topologyconfig-namespace
+            namespace: harikube
           spec:
-            targetSecret: default/topology-config
+            targetSecret: harikube/topology-config
             backends:
             - name: namespace
               endpoint: sqlite://./db/namespace.db?_journal=WAL&cache=shared
@@ -50,6 +112,7 @@ spec:
           kind: TopologyConfig
           metadata:
             name: topologyconfig-shirts
+            namespace: harikube
           status:
             deployOrder: 1
             deployStatus: Active
@@ -59,6 +122,7 @@ spec:
           kind: TopologyConfig
           metadata:
             name: topologyconfig-namespace
+            namespace: harikube
           status:
             deployOrder: 2
             deployStatus: Active
@@ -68,14 +132,14 @@ spec:
           kind: Secret
           metadata:
             name: topology-config
-            namespace: default
+            namespace: harikube
             finalizers:
             - harikube.info/finalizer
           data:
             (base64_decode("1-topologyconfig-shirts.yaml")): |
               backends:
               - name: shirts
-                endpoint: mysql://root:passwd@tcp(172.17.0.1:33061)/kine_db
+                endpoint: mysql://root:passwd@tcp(mysql-internal-service.harikube.svc.cluster.local:3306)/kine_db
                 connectionPool:
                   maxIdle: 5
                   maxOpen: 90
@@ -91,33 +155,10 @@ spec:
                 namespace:
                   namespace: test
                   kinds: []
-    - sleep:
-        duration: 10s
-  - name: Create custom resource
+  - name: Validate database registration
     try:
-    - apply:
-        file: https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/customresourcedefinition/shirt-resource-definition.yaml
-    - assert:
-        resource:
-          apiVersion: apiextensions.k8s.io/v1
-          kind: CustomResourceDefinition
-          metadata:
-            name: shirts.stable.example.com
-    - apply:
-        resource:
-          apiVersion: stable.example.com/v1
-          kind: Shirt
-          metadata:
-            name: example1
-          spec:
-            color: blue
-            size: S
-    - assert:
-        resource:
-          apiVersion: stable.example.com/v1
-          kind: Shirt
-          metadata:
-            name: example1
+    - sleep:
+        duration: 5s
     - script:
         content: |
-          docker exec harikube-chainsaw-mysql mysql -uroot -ppasswd -N kine_db -e "select name from kine where name like '%example1%';" | grep -q example1
+          kubectl logs -n harikube -l app=harikube-middleware --since=0 | grep -q 'Backends registered: \[shirts namespace main\]'

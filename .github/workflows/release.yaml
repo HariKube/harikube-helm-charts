@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    branches:
+    - release-v**
+    - rc-v**
+    - beta-v**
+    - alpha-v**
+    - dev-v**
+
+concurrency: 
+  group: ${{ github.ref_name }}-release
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - name: Install devbox
+        uses: jetify-com/devbox-install-action@v0.12.0
+        with:
+          enable-cache: 'true'
+
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Extract branch name
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - name: Extract version
+        run: echo "version=$(cat harikube/Chart.yaml | grep '^version' | cut -d' ' -f2)" >> $GITHUB_OUTPUT
+        id: extract_version
+
+      - name: Build chart
+        run: devbox run helm package ./harikube
+
+      - name: Push chart
+        run: devbox run helm push harikube-${{ steps.extract_version.outputs.version }}.tgz oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}/harikube-helm-charts
+
+      - name: Create release
+        if: ${{ !startsWith(github.ref, 'refs/heads/dev-') }}
+        uses: mhmxs/milestone-release-action@main
+        with:
+          milestone-title: ${{ steps.extract_branch.outputs.branch }}
+          pre-body: |
+              # harikube-helm-charts
+
+              `helm install harikube oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}/harikube-helm-charts --version ${{ steps.extract_version.outputs.version }}`
+
+              ## Release Notes
+          draft: true
+          prerelease: ${{ startsWith(github.ref, 'refs/heads/rc-') || startsWith(github.ref, 'refs/heads/beta-') || startsWith(github.ref, 'refs/heads/alpha-') }}
+          files: harikube-${{ steps.extract_version.outputs.version }}.tgz

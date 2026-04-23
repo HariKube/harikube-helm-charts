@@ -47,7 +47,6 @@ _test-e2e:
 		--namespace $(NAMESPACE)
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
-	
 
 	helm repo add loft-sh https://charts.loft.sh
 	helm repo update
@@ -59,7 +58,11 @@ _test-e2e:
 		--set controlPlane.distro.k8s.image.tag=v1.35.3
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
 
-	chainsaw test --test-dir test/integration
+	chainsaw test --test-dir test/integration/00-topology-config
+
+	vcluster connect harikube-vcluster
+	chainsaw test --test-dir test/integration/01-shirt
+	vcluster disconnect
 
 .PHONY: cleanup-test
 cleanup-test:
