@@ -1,4 +1,5 @@
 NAMESPACE=harikube
+SECRET_DIR ?= .vscode
 KIND_CLUSTER ?= harikube-helm-chart-test
 
 .PHONY: lint
@@ -35,11 +36,11 @@ test-e2e: setup-test _test-e2e cleanup-test
 _test-e2e:
 	kubectl create namespace $(NAMESPACE)
 	kubectl label namespace $(NAMESPACE) harikube.info/middleware=enabled --overwrite
-	kubectl create secret generic -n $(NAMESPACE) harikube-license --from-file=.vscode/license
+	kubectl create secret generic -n $(NAMESPACE) harikube-license --from-file=$(SECRET_DIR)/license
 	kubectl create secret docker-registry harikube-registry-secret \
 		--docker-server=registry.harikube.info \
 		--docker-username=harikube \
-		--docker-password="$$(head -1 .vscode/credential)" \
+		--docker-password="$$(head -1 $(SECRET_DIR)/credential)" \
 		--namespace=$(NAMESPACE)
 
 	helm install harikube ./harikube \
