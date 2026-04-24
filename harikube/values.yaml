@@ -59,6 +59,7 @@ middleware:
   # - --emulated-etcd-version=3.5.13
   - --listen-address=0.0.0.0:2379
   - --metrics-bind-address=:8080
+  - --server-ca-file=/etc/harikube-middleware-crt/ca.crt
   - --server-cert-file=/etc/harikube-middleware-crt/tls.crt
   - --server-key-file=/etc/harikube-middleware-crt/tls.key
   # - --metrics-enable-profiling=true
@@ -70,7 +71,7 @@ middleware:
   - --datastore-connection-max-lifetime=5m
   - --datastore-connection-max-idle-lifetime=5m
   - --endpoint=multi://sqlite:///db/main.db?_journal=WAL&cache=shared
-  # - --ca-file=/etc/db/tls/database.ca
+  # - --ca-file=/etc/db/tls/database.crt
   # - --cert-file=/etc/db/tls/database.crt
   # - --key-file=/etc/db/tls/database.key
   # - --skip-verify=true
