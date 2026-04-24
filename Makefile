@@ -31,9 +31,9 @@ _test-integration:
 		--namespace $(NAMESPACE)
 
 .PHONY: test-e2e
-test-e2e: setup-test _test-e2e cleanup-test
+test-e2e: setup-test _setup-e2e _test-e2e cleanup-test
 
-_test-e2e:
+_setup-e2e:
 	kubectl create namespace $(NAMESPACE)
 	kubectl label namespace $(NAMESPACE) harikube.info/middleware=enabled --overwrite
 	kubectl create secret generic -n $(NAMESPACE) harikube-license --from-file=$(SECRET_DIR)/license
@@ -58,6 +58,7 @@ _test-e2e:
 		--values harikube/vcluster/workload-config.yaml
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
 
+_test-e2e:
 	chainsaw test --test-dir test/integration/00-topology-config
 
 	vcluster connect harikube-vcluster
