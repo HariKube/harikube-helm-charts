@@ -9,7 +9,7 @@ middleware:
   image:
     repository: registry.harikube.info/harikube/middleware
     pullPolicy: IfNotPresent
-    tag: release-v1.0.3
+    tag: release-v1.0.4
   env:
   - name: TOPOLOGY_CONFIG
     value: secret://harikube/topology-config

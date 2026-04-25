@@ -49,11 +49,8 @@ _setup-e2e:
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 
-	helm repo add loft-sh https://charts.loft.sh
-	helm repo update
-	helm install harikube-vcluster loft-sh/vcluster \
+	helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
 		--debug \
-		--version 0.32.1 \
 		--namespace $(NAMESPACE) \
 		--values harikube/vcluster/workload-config.yaml
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
