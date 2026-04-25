@@ -3,30 +3,37 @@ NAMESPACE = harikube
 SECRET_DIR ?= .vscode
 KIND_CLUSTER ?= harikube-helm-chart-test
 
+HELM ?= helm
+YAMLLINT ?= yamllint
+KIND ?= kind
+KUBECTL ?= kubectl
+CHAINSAW ?= chainsaw
+VCLUSTER ?= vcluster
+
 .PHONY: lint
 lint:
-	helm lint ./harikube
-	yamllint --strict --format github <(make render)
-	helm template harikube ./harikube | kubeconform -summary -verbose -ignore-missing-schemas
+	$(HELM) lint ./harikube
+	$(YAMLLINT) --strict --format github <(make render)
+	$(HELM) template harikube ./harikube | kubeconform -summary -verbose -ignore-missing-schemas
 
 .PHONY: render
 render:
-	@helm template harikube ./harikube
+	@$(HELM) template harikube ./harikube
 
 .PHONY: setup-test
 setup-test: cleanup-test
-	kind create cluster --name $(KIND_CLUSTER)
-	kubectl wait --for=condition=Ready node/$(KIND_CLUSTER)-control-plane --timeout=120s
+	$(KIND) create cluster --name $(KIND_CLUSTER)
+	$(KUBECTL) wait --for=condition=Ready node/$(KIND_CLUSTER)-control-plane --timeout=120s
 
-	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
-	kubectl apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.77.1/stripped-down-crds.yaml
-	kubectl wait -n cert-manager --for=jsonpath='{.status.readyReplicas}'=1 deployment/cert-manager-webhook --timeout=2m
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
+	$(KUBECTL) apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.77.1/stripped-down-crds.yaml
+	$(KUBECTL) wait -n cert-manager --for=jsonpath='{.status.readyReplicas}'=1 deployment/cert-manager-webhook --timeout=2m
 
 .PHONY: test-integration
 test-integration: setup-test _test-integration cleanup-test
 
 _test-integration:
-	helm install harikube ./harikube \
+	$(HELM) install harikube ./harikube \
 		--dry-run \
 		--debug \
 		--namespace $(NAMESPACE)
@@ -35,35 +42,35 @@ _test-integration:
 test-e2e: setup-test _setup-e2e _test-e2e cleanup-test
 
 _setup-e2e:
-	kubectl create namespace $(NAMESPACE)
-	kubectl label namespace $(NAMESPACE) harikube.info/middleware=enabled --overwrite
-	kubectl create secret generic -n $(NAMESPACE) harikube-license --from-file=$(SECRET_DIR)/license
-	kubectl create secret docker-registry harikube-registry-secret \
+	$(KUBECTL) create namespace $(NAMESPACE)
+	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/middleware=enabled --overwrite
+	$(KUBECTL) create secret generic -n $(NAMESPACE) harikube-license --from-file=$(SECRET_DIR)/license
+	$(KUBECTL) create secret docker-registry harikube-registry-secret \
 		--docker-server=registry.harikube.info \
 		--docker-username=harikube \
 		--docker-password="$$(head -1 $(SECRET_DIR)/credential)" \
 		--namespace=$(NAMESPACE)
 
-	helm install harikube ./harikube \
+	$(HELM) install harikube ./harikube \
 		--debug \
 		--namespace $(NAMESPACE)
 		--set middleware.image.tag=$(MIDDLEWARE_VERSION)
-	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
-	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 
-	helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
+	$(HELM) install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
 		--debug \
 		--namespace $(NAMESPACE) \
 		--values harikube/vcluster/workload-config.yaml
-	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
 
 _test-e2e:
-	chainsaw test --test-dir test/integration/00-topology-config
+	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 
-	vcluster connect harikube-vcluster
-	chainsaw test --test-dir test/integration/01-shirt
-	vcluster disconnect
+	$(VCLUSTER) connect harikube-vcluster
+	$(CHAINSAW) test --test-dir test/integration/01-shirt
+	$(VCLUSTER) disconnect
 
 .PHONY: cleanup-test
 cleanup-test:
-	@kind delete cluster --name $(KIND_CLUSTER)
+	@$(KIND) delete cluster --name $(KIND_CLUSTER)
