@@ -1,4 +1,5 @@
-NAMESPACE=harikube
+MIDDLEWARE_VERSION ?= $(cat harikube/Chart.yaml | grep '^appVersion' | cut -d' ' -f2)
+NAMESPACE = harikube
 SECRET_DIR ?= .vscode
 KIND_CLUSTER ?= harikube-helm-chart-test
 
@@ -46,6 +47,7 @@ _setup-e2e:
 	helm install harikube ./harikube \
 		--debug \
 		--namespace $(NAMESPACE)
+		--set middleware.image.tag=$(MIDDLEWARE_VERSION)
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	kubectl wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 
