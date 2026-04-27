@@ -53,7 +53,7 @@ _setup-e2e:
 
 	$(HELM) install harikube ./harikube \
 		--debug \
-		--namespace $(NAMESPACE)
+		--namespace $(NAMESPACE) \
 		--set middleware.image.tag=$(MIDDLEWARE_VERSION)
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
