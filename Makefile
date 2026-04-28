@@ -30,7 +30,8 @@ setup-test: cleanup-test
 	$(KUBECTL) wait -n cert-manager --for=jsonpath='{.status.readyReplicas}'=1 deployment/cert-manager-webhook --timeout=2m
 
 .PHONY: test-integration
-test-integration: setup-test _test-integration cleanup-test
+test-integration: setup-test _test-integration
+	$(MAKE) cleanup-test
 
 _test-integration:
 	$(HELM) install harikube ./harikube \
@@ -39,7 +40,8 @@ _test-integration:
 		--namespace $(NAMESPACE)
 
 .PHONY: test-e2e
-test-e2e: setup-test _setup-e2e _test-e2e cleanup-test
+test-e2e: setup-test _setup-e2e _test-e2e
+	$(MAKE) cleanup-test
 
 _setup-e2e:
 	$(KUBECTL) create namespace $(NAMESPACE)
