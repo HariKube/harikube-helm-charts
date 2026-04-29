@@ -31,13 +31,6 @@ jobs:
         with:
           enable-cache: 'true'
 
-      - name: Login to registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.REGISTRY }}
-          username: ${{ vars.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_TOKEN }}
-
       - name: Extract branch name
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
         id: extract_branch
@@ -46,11 +39,18 @@ jobs:
         run: echo "version=$(cat harikube/Chart.yaml | grep '^version' | cut -d' ' -f2)" >> $GITHUB_OUTPUT
         id: extract_version
 
-      - name: Build chart
+      - name: Helm build chart
         run: devbox run helm package ./harikube
 
-      - name: Push chart
-        run: devbox run helm push harikube-${{ steps.extract_version.outputs.version }}.tgz oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}/harikube-helm-charts
+      - name: Helm login
+        run: |
+          echo "${{ secrets.REGISTRY_TOKEN }}" | devbox run helm registry login ${{ vars.REGISTRY }} \
+            --username "${{ vars.REGISTRY_USER }}" \
+            --password-stdin
+
+      - name: Helm push chart
+        run: |
+          devbox run helm push harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}
 
       - name: Create release
         if: ${{ !startsWith(github.ref, 'refs/heads/dev-') }}
