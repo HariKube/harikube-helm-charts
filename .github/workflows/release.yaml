@@ -15,7 +15,10 @@ concurrency:
 
 permissions:
   contents: write
-  
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GIT_TOKEN  }}
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -65,4 +68,4 @@ jobs:
               ## Release Notes
           draft: true
           prerelease: ${{ startsWith(github.ref, 'refs/heads/rc-') || startsWith(github.ref, 'refs/heads/beta-') || startsWith(github.ref, 'refs/heads/alpha-') }}
-          files: harikube-${{ steps.extract_version.outputs.version }}.tgz
+          files: harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz
