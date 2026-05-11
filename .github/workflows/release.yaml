@@ -61,49 +61,49 @@ jobs:
         with:
           milestone-title: ${{ steps.extract_branch.outputs.branch }}
           pre-body: |
-              # harikube-helm-charts
+            # harikube-helm-charts
 
-              ## Installation
-              
-              ```bash
-            	kubectl create namespace harikube
-            	kubectl label namespace harikube harikube.info/middleware=enabled --overwrite
-            	kubectl create secret generic -n harikube harikube-license --from-file=LICENSE_FILE
-            	kubectl create secret docker-registry harikube-registry-secret \
-            		--docker-server=registry.harikube.info \
-            		--docker-username=REGISTRY_USER \
-            		--docker-password="REGISTRY_PASSWORD" \
-            		--namespace=harikube
+            ## Installation
             
-            	helm install harikube oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}/harikube-helm-charts \
-                --version ${{ steps.extract_version.outputs.version }} \
-            		--debug \
-            		--namespace harikube
-              kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
-            	kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
-              ```
+            ```bash
+            kubectl create namespace harikube
+            kubectl label namespace harikube harikube.info/middleware=enabled --overwrite
+            kubectl create secret generic -n harikube harikube-license --from-file=LICENSE_FILE
+            kubectl create secret docker-registry harikube-registry-secret \
+              --docker-server=registry.harikube.info \
+              --docker-username=REGISTRY_USER \
+              --docker-password="REGISTRY_PASSWORD" \
+              --namespace=harikube
+          
+            helm install harikube oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}/harikube-helm-charts \
+              --version ${{ steps.extract_version.outputs.version }} \
+              --debug \
+              --namespace harikube
+            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
+            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
+            ```
 
-              ### Install vCluster API only
-              
-              ```bash
-            	helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
-            		--debug \
-            		--namespace harikube \
-            		--values harikube/vcluster/api-config.yaml
-            	kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
-              ```
+            ### Install vCluster API only
+            
+            ```bash
+            helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
+              --debug \
+              --namespace harikube \
+              --values harikube/vcluster/api-config.yaml
+            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
+            ```
 
-              ### Install vCluster workload support
-              
-              ```bash
-            	helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
-            		--debug \
-            		--namespace harikube \
-            		--values harikube/vcluster/workload-config.yaml
-            	kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
-              ```
-              
-              ## Release Notes
+            ### Install vCluster workload support
+            
+            ```bash
+            helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
+              --debug \
+              --namespace harikube \
+              --values harikube/vcluster/workload-config.yaml
+            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
+            ```
+            
+            ## Release Notes
           draft: true
           prerelease: ${{ startsWith(github.ref, 'refs/heads/rc-') || startsWith(github.ref, 'refs/heads/beta-') || startsWith(github.ref, 'refs/heads/alpha-') }}
           files: harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz
