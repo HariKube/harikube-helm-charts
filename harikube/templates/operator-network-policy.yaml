@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-operator-netpol
+  namespace: {{ .Release.Namespace }}
 spec:
   ingress:
   - from:
@@ -29,6 +30,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-operator-metrics-netpol
+  namespace: {{ .Release.Namespace }}
 spec:
   ingress:
   - from:

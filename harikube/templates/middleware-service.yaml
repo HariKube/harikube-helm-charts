@@ -4,6 +4,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-middleware-svc
+  namespace: {{ .Release.Namespace }}
 spec:
   type: {{ .Values.middleware.service.apiPort.type }}
   ports:

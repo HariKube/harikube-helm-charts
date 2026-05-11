@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-middleware-sm
+  namespace: {{ .Release.Namespace }}
 spec:
   endpoints:
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

@@ -4,6 +4,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-middleware-issuer
+  namespace: {{ .Release.Namespace }}
 spec:
   selfSigned: {}
 ---
@@ -13,6 +14,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-middleware-crt
+  namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
   - harikube-middleware-svc.{{ .Release.Namespace }}

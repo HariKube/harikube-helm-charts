@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-operator-issuer
+  namespace: {{ .Release.Namespace }}
 spec:
   selfSigned: {}
 ---
@@ -14,6 +15,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-operator-crt
+  namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
   - harikube-operator-svc.{{ .Release.Namespace }}.svc
@@ -30,6 +32,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-operator-metrics-crt
+  namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
   - harikube-operator-metrics-svc.{{ .Release.Namespace }}.svc

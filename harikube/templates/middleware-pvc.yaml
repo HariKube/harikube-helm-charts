@@ -4,5 +4,6 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-middleware-pvc
+  namespace: {{ .Release.Namespace }}
 spec:
   {{- toYaml .Values.middleware.pvc | nindent 2 }}

@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
   name: harikube-operator-deploy
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: 1
   selector:
