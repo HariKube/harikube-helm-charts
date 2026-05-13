@@ -1,3 +1,6 @@
+
+MAKEFLAGS += --no-print-directory
+
 NAMESPACE = harikube
 SECRET_DIR ?= .vscode
 KIND_CLUSTER ?= harikube-helm-chart-test
@@ -14,6 +17,13 @@ lint:
 	$(HELM) lint ./harikube
 	$(YAMLLINT) --strict --format github <(make render)
 	$(HELM) template harikube ./harikube | kubeconform -summary -verbose -ignore-missing-schemas
+	@$(HELM) template harikube ./harikube \
+		--set vcluster.networkPolicy.create=false \
+		--set middleware.create=false \
+		--set operator.create=false \
+		--set apiServer.create=false \
+		--set controllerManager.create=false \
+		| grep ":" && exit 1 || echo ok
 
 .PHONY: render
 render:
@@ -27,6 +37,7 @@ setup-test: cleanup-test
 	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
 	$(KUBECTL) apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.77.1/stripped-down-crds.yaml
 	$(KUBECTL) wait -n cert-manager --for=jsonpath='{.status.readyReplicas}'=1 deployment/cert-manager-webhook --timeout=2m
+	sleep 5
 
 .PHONY: test-integration
 test-integration: setup-test _test-integration
@@ -44,7 +55,10 @@ test-e2e: setup-test _setup-e2e _test-e2e
 
 _setup-e2e:
 	$(KUBECTL) create namespace $(NAMESPACE)
-	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/middleware=enabled --overwrite
+	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-middleware=enabled --overwrite
+	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-apiserver=enabled --overwrite
+	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
+	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-vcluster=enabled --overwrite
 	$(KUBECTL) create secret generic -n $(NAMESPACE) harikube-license --from-file=$(SECRET_DIR)/license
 	$(KUBECTL) create secret docker-registry harikube-registry-secret \
 		--docker-server=registry.harikube.info \
@@ -63,6 +77,15 @@ _setup-e2e:
 		--namespace $(NAMESPACE) \
 		--values harikube/vcluster/workload-config.yaml
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
+
+	$(HELM) install harikube-control-plane ./harikube \
+		--debug \
+		--namespace $(NAMESPACE) \
+		--set vcluster.networkPolicy.create=false \
+		--set middleware.create=false \
+		--set operator.create=false \
+		--set apiServer.create=true \
+		--set controllerManager.create=true
 
 _test-e2e:
 	$(CHAINSAW) test --test-dir test/integration/00-topology-config

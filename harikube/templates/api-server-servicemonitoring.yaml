@@ -1,11 +1,11 @@
-{{- if .Values.operator.create -}}
-{{- if .Values.operator.monitoring.create -}}
+{{- if .Values.apiServer.create -}}
+{{- if .Values.apiServer.monitoring.create -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
-  name: harikube-operator-sm
+  name: harikube-api-server-sm
   namespace: {{ .Release.Namespace }}
 spec:
   endpoints:
@@ -17,19 +17,19 @@ spec:
       ca:
         secret:
           key: ca.crt
-          name: harikube-operator-metrics-crt
+          name: harikube-api-server-crt
       cert:
         secret:
           key: tls.crt
-          name: harikube-operator-metrics-crt
+          name: harikube-api-server-crt
       insecureSkipVerify: false
       keySecret:
         key: tls.key
-        name: harikube-operator-metrics-crt
-      serverName: harikube-operator-metrics-svc.{{ .Release.Namespace }}.svc
+        name: harikube-api-server-crt
+      serverName: harikube-api-server-svc.{{ .Release.Namespace }}.svc
   selector:
     matchLabels:
-    {{- with .Values.operator.podLabels }}
+    {{- with .Values.apiServer.podLabels }}
     {{- toYaml . | nindent 6 }}
     {{- end }}
 {{- end }}

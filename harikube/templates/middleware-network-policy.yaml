@@ -1,3 +1,4 @@
+{{- if .Values.middleware.create -}}
 {{- if .Values.middleware.networkPolicy.create -}}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -11,7 +12,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          harikube.info/middleware: enabled
+          harikube.info/{{ .Release.Namespace }}-middleware: enabled
     ports:
     - port: {{ .Values.middleware.service.apiPort.port }}
       protocol: TCP
@@ -48,4 +49,5 @@ spec:
   policyTypes:
   - Ingress
 {{ end }}
+{{- end }}
 {{- end }}

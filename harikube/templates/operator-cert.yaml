@@ -18,7 +18,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
+  - localhost
+  - harikube-operator-svc
+  - harikube-operator-svc.{{ .Release.Namespace }}
   - harikube-operator-svc.{{ .Release.Namespace }}.svc
+  - harikube-operator-svc.{{ .Release.Namespace }}.cluster.local
   - harikube-operator-svc.{{ .Release.Namespace }}.svc.cluster.local
   issuerRef:
     kind: Issuer
@@ -35,7 +39,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   dnsNames:
+  - localhost
+  - harikube-operator-metrics-svc
+  - harikube-operator-metrics-svc.{{ .Release.Namespace }}
   - harikube-operator-metrics-svc.{{ .Release.Namespace }}.svc
+  - harikube-operator-metrics-svc.{{ .Release.Namespace }}.cluster.local
   - harikube-operator-metrics-svc.{{ .Release.Namespace }}.svc.cluster.local
   issuerRef:
     kind: Issuer

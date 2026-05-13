@@ -1,3 +1,4 @@
+{{- if .Values.middleware.create -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,7 +57,7 @@ spec:
           name: api-port
         - containerPort: {{ .Values.middleware.service.metrics.port }}
           name: metrics
-          {{- with .Values.middleware.volumeMounts }}
+        {{- with .Values.middleware.volumeMounts }}
         volumeMounts:
           {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -72,3 +73,4 @@ spec:
       volumes:
         {{- toYaml . | nindent 6 }}
       {{- end }}
+{{- end }}

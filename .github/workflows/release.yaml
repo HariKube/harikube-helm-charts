@@ -67,7 +67,10 @@ jobs:
             
             ```bash
             kubectl create namespace harikube
-            kubectl label namespace harikube harikube.info/middleware=enabled --overwrite
+            kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite
+            kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite
+            kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite
+            kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite
             kubectl create secret generic -n harikube harikube-license --from-file=LICENSE_FILE
             kubectl create secret docker-registry harikube-registry-secret \
               --docker-server=registry.harikube.info \

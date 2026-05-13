@@ -1,3 +1,4 @@
+{{- if .Values.middleware.create -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -7,3 +8,4 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   {{- toYaml .Values.middleware.pvc | nindent 2 }}
+{{- end }}
