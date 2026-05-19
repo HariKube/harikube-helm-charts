@@ -7,7 +7,7 @@ imagePullSecrets:
 
 vcluster:
   networkPolicy:
-    create: true
+    create: false
 
 mutatingAdmissionPolicy:
   # Specifies whether the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching should be created
@@ -200,9 +200,9 @@ middleware:
         storage: 5Gi
     # storageClassName: default
   monitoring:
-    create: true
+    create: false
   networkPolicy:
-    create: true
+    create: false
 
 operator:
   # Specifies whether the operator should be created
@@ -315,9 +315,9 @@ operator:
   serviceAccount:
     annotations: {}
   monitoring:
-    create: true
+    create: false
   networkPolicy:
-    create: true
+    create: false
 
 apiServer:
   # Specifies whether the api-server should be created
@@ -437,9 +437,9 @@ apiServer:
               values:
               - linux
   monitoring:
-    create: true
+    create: false
   networkPolicy:
-    create: true
+    create: false
 
 controllerManager:
   # Specifies whether the controller-manager should be created
@@ -548,6 +548,6 @@ controllerManager:
               values:
               - linux
   monitoring:
-    create: true
+    create: false
   networkPolicy:
-    create: true
+    create: false

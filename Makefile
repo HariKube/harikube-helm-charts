@@ -18,7 +18,6 @@ lint:
 	$(YAMLLINT) --strict --format github <(make render)
 	$(HELM) template harikube ./harikube | kubeconform -summary -verbose -ignore-missing-schemas
 	@$(HELM) template harikube ./harikube \
-		--set vcluster.networkPolicy.create=false \
 		--set middleware.create=false \
 		--set operator.create=false \
 		--set apiServer.create=false \
@@ -68,7 +67,15 @@ _setup-e2e:
 
 	$(HELM) install harikube ./harikube \
 		--debug \
-		--namespace $(NAMESPACE)
+		--namespace $(NAMESPACE) \
+		--set middleware.networkPolicy.create=true \
+		--set apiServer.networkPolicy.create=true \
+		--set controllerManager.networkPolicy.create=true \
+		--set vcluster.networkPolicy.create=true \
+		--set middleware.monitoring.create=true \
+		--set operator.monitoring.create=true \
+		--set apiServer.monitoring.create=true \
+		--set controllerManager.monitoring.create=true
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 
@@ -81,7 +88,6 @@ _setup-e2e:
 	$(HELM) install harikube-control-plane ./harikube \
 		--debug \
 		--namespace $(NAMESPACE) \
-		--set vcluster.networkPolicy.create=false \
 		--set middleware.create=false \
 		--set operator.create=false \
 		--set apiServer.create=true \

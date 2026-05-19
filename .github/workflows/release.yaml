@@ -66,11 +66,6 @@ jobs:
             ## Installation
             
             ```bash
-            kubectl create namespace harikube
-            kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite
-            kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite
-            kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite
-            kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite
             kubectl create secret generic -n harikube harikube-license --from-file=LICENSE_FILE
             kubectl create secret docker-registry harikube-registry-secret \
               --docker-server=registry.harikube.info \
@@ -84,6 +79,31 @@ jobs:
               --namespace harikube
             kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
             kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
+            ```
+
+            You can enable network policies, in this case you have to create the namespace before you install HariKube.
+
+            ```bash
+            kubectl create namespace harikube
+            kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite # --set middleware.networkPolicy.create=true
+            kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite # --set apiServer.networkPolicy.create=true
+            kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite # --set controllerManager.networkPolicy.create=true
+            kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite # --set vcluster.networkPolicy.create=true
+            ```
+
+            You can enable ServiceMonitors per service.
+
+            ```bash
+            --set middleware.monitoring.create=true
+            --set operator.monitoring.create=true
+            --set apiServer.monitoring.create=true
+            --set controllerManager.monitoring.create=true
+            ```
+
+            You can enable the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
+
+            ```bash
+            --set mutatingAdmissionPolicy.create=true
             ```
 
             ### Install vCluster API only
