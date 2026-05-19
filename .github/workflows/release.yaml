@@ -66,6 +66,7 @@ jobs:
             ## Installation
             
             ```bash
+            kubectl create namespace harikube
             kubectl create secret generic -n harikube harikube-license --from-file=LICENSE_FILE
             kubectl create secret docker-registry harikube-registry-secret \
               --docker-server=registry.harikube.info \
@@ -81,10 +82,9 @@ jobs:
             kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
             ```
 
-            You can enable network policies, in this case you have to create the namespace before you install HariKube.
+            You can enable network policies, in this case you have to label the namespace before you install HariKube.
 
             ```bash
-            kubectl create namespace harikube
             kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite # --set middleware.networkPolicy.create=true
             kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite # --set apiServer.networkPolicy.create=true
             kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite # --set controllerManager.networkPolicy.create=true
