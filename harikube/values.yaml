@@ -9,6 +9,10 @@ vcluster:
   networkPolicy:
     create: true
 
+mutatingAdmissionPolicy:
+  # Specifies whether the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching should be created
+  create: false
+
 middleware:
   # Specifies whether the middleware should be created
   create: true
