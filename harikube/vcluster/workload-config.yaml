@@ -65,7 +65,7 @@ controlPlane:
           mountPath: /etc/kubernetes/pki/etcd
           readOnly: true
   serviceMonitor:
-    enabled: true
+    enabled: false
 exportKubeConfig:
   context: harikube-vcluster-context
   server: https://harikube-vcluster.harikube:443
