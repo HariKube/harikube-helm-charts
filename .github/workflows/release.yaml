@@ -85,8 +85,8 @@ jobs:
             You can enable network policies, in this case you have to label the namespace before you install HariKube.
 
             ```bash
-            kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite # --set middleware.networkPolicy.create=true
-            kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite # --set vcluster.networkPolicy.create=true
+            --set middleware.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite
+            --set vcluster.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite
             ```
 
             You can enable ServiceMonitors per service.
@@ -138,8 +138,8 @@ jobs:
             You can enable network policies.
 
             ```bash
-            kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite # --set apiServer.networkPolicy.create=true
-            kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite # --set controllerManager.networkPolicy.create=true
+            --set apiServer.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite
+            --set controllerManager.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite
             ```
 
             You can enable ServiceMonitors per service.
