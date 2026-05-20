@@ -86,8 +86,6 @@ jobs:
 
             ```bash
             kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite # --set middleware.networkPolicy.create=true
-            kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite # --set apiServer.networkPolicy.create=true
-            kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite # --set controllerManager.networkPolicy.create=true
             kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite # --set vcluster.networkPolicy.create=true
             ```
 
@@ -96,8 +94,6 @@ jobs:
             ```bash
             --set middleware.monitoring.create=true
             --set operator.monitoring.create=true
-            --set apiServer.monitoring.create=true
-            --set controllerManager.monitoring.create=true
             ```
 
             You can enable the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
@@ -126,6 +122,33 @@ jobs:
             kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
             ```
             
+            ### Install scalable control pvclaimbinde
+
+            ```bash
+            helm install harikube-control-plane ./harikube \
+              --debug \
+              --namespace $(NAMESPACE) \
+              --set namespace.create=false \
+              --set middleware.create=false \
+              --set operator.create=false \
+              --set apiServer.create=true \
+              --set controllerManager.create=true
+            ```
+
+            You can enable network policies.
+
+            ```bash
+            kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite # --set apiServer.networkPolicy.create=true
+            kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite # --set controllerManager.networkPolicy.create=true
+            ```
+
+            You can enable ServiceMonitors per service.
+
+            ```bash
+            --set apiServer.monitoring.create=true
+            --set controllerManager.monitoring.create=true
+            ```
+
             ## Release Notes
           draft: true
           prerelease: ${{ startsWith(github.ref, 'refs/heads/rc-') || startsWith(github.ref, 'refs/heads/beta-') || startsWith(github.ref, 'refs/heads/alpha-') }}
