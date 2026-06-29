@@ -47,7 +47,7 @@ spec:
       containers:
       - name: middleware
         {{- if .Values.enterprise.key }}
-        image: "registry.harikube.info/harikube/middleware:{{ .Values.middleware.image.tagEE }}"
+        image: "registry.harikube.info/harikube/middleware:{{ .Values.middleware.image.tag }}"
         {{ else }}
         image: "quay.io/harikube/harikube:{{ .Values.middleware.image.tag }}"
         {{- end }}
