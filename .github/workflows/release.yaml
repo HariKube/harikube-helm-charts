@@ -53,6 +53,7 @@ jobs:
 
       - name: Helm push chart
         run: |
+          cp harikube-${{ steps.extract_version.outputs.version }}.tgz harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz
           devbox run helm push harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}
 
       - name: Create release
