@@ -17,16 +17,24 @@ lint:
 	$(HELM) lint ./harikube
 	$(YAMLLINT) --strict --format github <(make render)
 	$(HELM) template harikube ./harikube | kubeconform -summary -verbose -ignore-missing-schemas
-	@$(HELM) template harikube ./harikube \
-		--set middleware.create=false \
-		--set operator.create=false \
-		--set apiServer.create=false \
-		--set controllerManager.create=false \
-		| grep ":" && exit 1 || echo ok
 
 .PHONY: render
 render:
-	@$(HELM) template harikube ./harikube
+	@$(HELM) template harikube ./harikube \
+		--debug \
+		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
+		--set enterprise.user=harikube \
+		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
+		--set middleware.monitoring.create=true \
+		--set middleware.networkPolicy.create=true \
+		--set operator.create=true \
+		--set operator.monitoring.create=true \
+		--set apiServer.create=true \
+		--set apiServer.monitoring.create=true \
+		--set apiServer.networkPolicy.create=true \
+		--set controllerManager.create=true \
+		--set controllerManager.monitoring.create=true \
+		--set controllerManager.networkPolicy.create=true
 
 .PHONY: setup-test
 setup-test: cleanup-test
@@ -57,46 +65,32 @@ _setup-e2e:
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-middleware=enabled --overwrite
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-apiserver=enabled --overwrite
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
-	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-vcluster=enabled --overwrite
-	$(KUBECTL) create secret generic -n $(NAMESPACE) harikube-license --from-file=$(SECRET_DIR)/license
-	$(KUBECTL) create secret docker-registry harikube-registry-secret \
-		--docker-server=registry.harikube.info \
-		--docker-username=harikube \
-		--docker-password="$$(head -1 $(SECRET_DIR)/credential)" \
-		--namespace=$(NAMESPACE)
 
 	$(HELM) install harikube ./harikube \
 		--debug \
+		--dependency-update \
 		--namespace $(NAMESPACE) \
-		--set middleware.networkPolicy.create=true \
-		--set apiServer.networkPolicy.create=true \
-		--set controllerManager.networkPolicy.create=true \
-		--set vcluster.networkPolicy.create=true \
+		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
+		--set enterprise.user=harikube \
+		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
 		--set middleware.monitoring.create=true \
+		--set middleware.networkPolicy.create=true \
+		--set operator.create=true \
 		--set operator.monitoring.create=true \
+		--set apiServer.create=true \
 		--set apiServer.monitoring.create=true \
-		--set controllerManager.monitoring.create=true
+		--set apiServer.networkPolicy.create=true \
+		--set controllerManager.create=true \
+		--set controllerManager.monitoring.create=true \
+		--set controllerManager.networkPolicy.create=true
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
-
-	$(HELM) install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
-		--debug \
-		--namespace $(NAMESPACE) \
-		--values harikube/vcluster/workload-config.yaml
-	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
-
-	$(HELM) install harikube-control-plane ./harikube \
-		--debug \
-		--namespace $(NAMESPACE) \
-		--set middleware.create=false \
-		--set operator.create=false \
-		--set apiServer.create=true \
-		--set controllerManager.create=true
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 
 _test-e2e:
 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 
-	$(VCLUSTER) connect harikube-vcluster
+	$(VCLUSTER) connect harikube
 	$(CHAINSAW) test --test-dir test/integration/01-shirt
 	$(VCLUSTER) disconnect
 

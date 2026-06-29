@@ -61,39 +61,34 @@ jobs:
         with:
           milestone-title: ${{ steps.extract_branch.outputs.branch }}
           pre-body: |
-            # harikube-helm-charts
-
             ## Installation
-            
+
+            ### Prerequisets
+
+            - Kubernetes cluster; supported versions Vanilla, EKS, AKS, GKE, RKE2, OpenShift >=1.34.0
+            - Cert-manager
+
             ```bash
-            kubectl create namespace harikube
-            kubectl create secret generic -n harikube harikube-license --from-file=LICENSE_FILE
-            kubectl create secret docker-registry harikube-registry-secret \
-              --docker-server=registry.harikube.info \
-              --docker-username=REGISTRY_USER \
-              --docker-password="REGISTRY_PASSWORD" \
-              --namespace=harikube
-          
-            helm install harikube oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}/harikube-helm-charts \
+            helm install harikube oci://quay.io/harikube/harikube-helm-charts \
               --version ${{ steps.extract_version.outputs.version }} \
-              --debug \
+              --dependency-update \
+              --create-namespace \
               --namespace harikube
-            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
-            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
+            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
             ```
 
-            You can enable network policies, in this case you have to label the namespace before you install HariKube.
+            > If you change namespace, please `--set vcluster.exportKubeConfigserver=https://harikube.<NAMESPACE>:443`
+
+            You can enable network policies. You have to create namespace manually, label the namespace and skip `--create-namespace` flag.
 
             ```bash
-            --set middleware.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-middleware=enabled --overwrite
-            --set vcluster.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-vcluster=enabled --overwrite
+            --set middleware.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-middleware=enabled --overwrite
             ```
 
-            You can enable ServiceMonitors per service.
+            You can enable ServiceMonitors for middleware.
 
             ```bash
             --set middleware.monitoring.create=true
-            --set operator.monitoring.create=true
             ```
 
             You can enable the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
@@ -102,44 +97,18 @@ jobs:
             --set mutatingAdmissionPolicy.create=true
             ```
 
-            ### Install vCluster API only
-            
+            You can enable a scalable contorl plane extension.
+
             ```bash
-            helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
-              --debug \
-              --namespace harikube \
-              --values harikube/vcluster/api-config.yaml
-            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
+            --set apiServer.create=true
+            --set controllerManager.create=true # By default all controllers are disabled, enable controllers you want to run.
             ```
 
-            ### Install vCluster workload support
-            
-            ```bash
-            helm install harikube-vcluster https://charts.loft.sh/charts/vcluster-0.32.1.tgz \
-              --debug \
-              --namespace harikube \
-              --values harikube/vcluster/workload-config.yaml
-            kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube-vcluster --timeout=5m
-            ```
-            
-            ### Install scalable control pvclaimbinde
+            You can enable network policies for control plane.
 
             ```bash
-            helm install harikube-control-plane ./harikube \
-              --debug \
-              --namespace $(NAMESPACE) \
-              --set namespace.create=false \
-              --set middleware.create=false \
-              --set operator.create=false \
-              --set apiServer.create=true \
-              --set controllerManager.create=true
-            ```
-
-            You can enable network policies.
-
-            ```bash
-            --set apiServer.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-apiserver=enabled --overwrite
-            --set controllerManager.networkPolicy.create=true # kubectl label namespace harikube harikube.info/harikube-controllermanager=enabled --overwrite
+            --set apiServer.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-apiserver=enabled --overwrite
+            --set controllerManager.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-controllermanager=enabled --overwrite
             ```
 
             You can enable ServiceMonitors per service.
@@ -149,7 +118,59 @@ jobs:
             --set controllerManager.monitoring.create=true
             ```
 
+            #### Enterprise Editioin
+
+            Set `enterprise.key`, `enterprise.user` and `enterprise.password`, then set `operator.create=true` and the chart will deploy licensed edition to the target cluster.
+
+            ## vCluster connection
+
+            Connect via vCluster CLI.
+
+            ```bash
+            vcluster connect harikube
+            ```
+
+            Connect via vCluster KUBECONFIG.
+
+            ```bash
+            kubectl get secret -n harikube vc-harikube -o yaml
+            ```
+
+            > 🔓 vCluster simplifies the operational workflow by automatically updating your local environment. For more details how to disable this behaviour, or how to get config by service account for example please wisit the official docs` [Access and expose vCluster](https://www.vcluster.com/docs/vcluster/manage/accessing-vcluster) section.
+
+            > 🔓 For service access from host, the vCluster setup keeps things simple: Create your ServiceAccount, create a secret annotated with `kubernetes.io/service-account.name` (example below), and vCluster will sync the secret to the host cluster.
+
+            ```yaml
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: remote-your-service-account-name
+              annotations:
+                kubernetes.io/service-account.name: "your-service-account-name"
+            type: kubernetes.io/service-account-token
+            ```
+
+            On the host cluster, you can fetch the connection details.
+
+            ```bash
+            KUBE_API_URL=harikube.harikube.svc.cluster.local
+            TOKEN=$(kubectl get secret -n harikube remote-your-service-account-name-x-default-x-harikube -o jsonpath='{.data.token}' | base64 -d)
+            CA_CERT=$(kubectl get secret -n harikube remote-your-service-account-name-x-default-x-harikube -o jsonpath='{.data.ca\.crt}' | base64 -d)
+            ```
+
+            ## Customization
+
+            The manifests gereted for the release are covering basic setup. You can customize your setup, by changing `vcluster` values.
+
+            ## Important Requirement
+
+            To use these features to their full potential, you cannot use "standard" Kubernetes. You must use the patched images provided by us These patches allow the Kubernetes API to understand the special storage instructions Kine is waiting for.
+
+            - [Kubernetes Patches](https://github.com/HariKube/kubernetes-patches)
+            - [Patched Images](https://quay.io/repository/harikube/kubernetes?tab=tags&tag=latest)
+
+
             ## Release Notes
           draft: true
           prerelease: ${{ startsWith(github.ref, 'refs/heads/rc-') || startsWith(github.ref, 'refs/heads/beta-') || startsWith(github.ref, 'refs/heads/alpha-') }}
-          files: harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz
+          files: harikube-${{ steps.extract_version.outputs.version }}.tgz

@@ -41,11 +41,9 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.controllerManager.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
-      {{- end }}
       containers:
       - name: controller-manager
-        image: "{{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag }}"
+        image: "quay.io/harikube/kube-controller-manager:{{ .Values.controllerManager.image.tag }}"
         imagePullPolicy: {{ .Values.controllerManager.image.pullPolicy }}
         command:
         - kube-controller-manager

@@ -41,13 +41,11 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.operator.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 6 }}
-      {{- end }}
+      - name: harikube-registry-secret
       containers:
       - name: manager
-        image: "{{ .Values.operator.image.repository }}:{{ .Values.operator.image.tag }}"
+        image: "registry.harikube.info/harikube/operator:{{ .Values.operator.image.tag }}"
         imagePullPolicy: {{ .Values.operator.image.pullPolicy }}
         args:
           {{- toYaml .Values.operator.args | nindent 8 }}

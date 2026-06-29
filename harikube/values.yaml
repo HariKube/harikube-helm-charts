@@ -2,12 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-imagePullSecrets:
-- name: harikube-registry-secret
-
-vcluster:
-  networkPolicy:
-    create: false
+enterprise:
+  key: ""
+  user: ""
+  password: ""
 
 mutatingAdmissionPolicy:
   # Specifies whether the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching should be created
@@ -16,60 +14,51 @@ mutatingAdmissionPolicy:
 middleware:
   # Specifies whether the middleware should be created
   create: true
+  monitoring:
+    create: false
+  networkPolicy:
+    create: false
   image:
-    repository: registry.harikube.info/harikube/middleware
     pullPolicy: IfNotPresent
-    tag: release-v1.0.4
+    tag: release-v0.15.0
+    tagEE: release-v0.14.5
   env:
+  - name: ENABLE_TELEMETRY_PUSH
+    value: "false"
   - name: TOPOLOGY_CONFIG
     value: secret://harikube/topology-config
-  # - name: TOPOLOGY_CONFIG_TLS_DIR
-  #   value: ./db/tls
   - name: LICENSE_KEY_FILE
     value: /etc/harikube/license
   # - name: LIST_MAX_ITEMS
   #   value: "10000"
-  # - name: CUSTOM_RESOURCE_DEFINITION_METADATA_FILE
-  #   value: ./db/crds.json
-  # - name: GARBAGE_COLLECTION_DIR
-  #   value: ./db/garbage-collector
   # - name: GARBAGE_COLLECTION_EXIT_ON_ERROR
   #   value: "false"
   # - name: REVISION_MAPPER
   #   value: "bbolt"
-  # - name: REVISION_MAPPER_BBOLT_O2G_PATHS
-  #   value: ./db
-  # - name: REVISION_MAPPER_BBOLT_G2O_PATHS
-  #   value: ./db
-  # - name: REVISION_MAPPER_BBOLT_LEASE_PATH
-  #   value: ./db
   # - name: REVISION_MAPPER_BBOLT_SYNC_PERIOD
   #   value: 0s
   # - name: REVISION_MAPPER_BBOLT_BATCH_SIZE
   #   value: "1"
   # - name: REVISION_MAPPER_BBOLT_WRITE_QUEUE
   #   value: "1"
-  # - name: REVISION_MAPPER_SQLITE_O2G_PATHS
-  #   value: ./db
-  # - name: REVISION_MAPPER_SQLITE_G2O_PATHS
-  #   value: ./db
-  # - name: REVISION_MAPPER_SQLITE_LEASE_PATH
-  #   value: ./db
+  # - name: REVISION_MAPPER
+  #   value: "sqlite"
   # - name: REVISION_MAPPER_SQLITE_SYNCHRONOUS
   #   value: OFF
-  # - name: REVISION_MAPPER_SQLITE_WRITE_QUEUE
-  #   value: ./db
   # - name: REVISION_MAPPER_SQLITE_MAX_CONNECTIONS
   #   value: "1"
-  - name: ENABLE_TELEMETRY_PUSH
-    value: "false"
+  endPoint:
+    url: sqlite:///db/main.db?_journal=WAL&cache=shared
+    caPEM: ""
+    certPEM: ""
+    keyPEM: ""
+    skipVerify: false
   args:
   # - --debug=true
   - --log-format=json
   # - --emulated-etcd-version=3.5.13
   - --listen-address=0.0.0.0:2379
   - --metrics-bind-address=:8080
-  - --server-ca-file=/etc/harikube-middleware-crt/ca.crt
   - --server-cert-file=/etc/harikube-middleware-crt/tls.crt
   - --server-key-file=/etc/harikube-middleware-crt/tls.key
   # - --metrics-enable-profiling=true
@@ -79,12 +68,6 @@ middleware:
   - --datastore-max-idle-connections=50
   - --datastore-max-open-connections=90
   - --datastore-connection-max-lifetime=5m
-  - --datastore-connection-max-idle-lifetime=5m
-  - --endpoint=multi://sqlite:///db/main.db?_journal=WAL&cache=shared
-  # - --ca-file=/etc/db/tls/database.crt
-  # - --cert-file=/etc/db/tls/database.crt
-  # - --key-file=/etc/db/tls/database.key
-  # - --skip-verify=true
   # - --watch-progress-notify-interval=5s
   # - --compact-interval=5m
   # - --compact-interval-jitter=0
@@ -146,30 +129,18 @@ middleware:
     periodSeconds: 10
     failureThreshold: 3
   volumes:
-  - name: license
-    secret:
-      secretName: harikube-license
   - name: harikube-middleware-crt
     secret:
       secretName: harikube-middleware-crt
-  # - name: harikube-endpoint-tls
-  #   secret:
-  #     secretName: harikube-endpoint-tls
   - name: harikube-middleware-pvc
     persistentVolumeClaim:
       claimName: harikube-middleware-pvc
   - name: tmp
     emptyDir: {}
   volumeMounts:
-  - name: license
-    mountPath: /etc/harikube
-    readOnly: true
   - name: harikube-middleware-crt
     mountPath: /etc/harikube-middleware-crt
     readOnly: true
-  # - name: harikube-endpoint-tls
-  #   mountPath: /etc/db/tls
-  #   readOnly: true
   - name: harikube-middleware-pvc
     mountPath: /db
   - name: tmp
@@ -198,17 +169,16 @@ middleware:
     resources:
       requests:
         storage: 5Gi
-    # storageClassName: default
+    storageClassName: standard
+
+operator:
+  # Specifies whether the operator should be created
+  create: false
   monitoring:
     create: false
   networkPolicy:
     create: false
-
-operator:
-  # Specifies whether the operator should be created
-  create: true
   image:
-    repository: registry.harikube.info/harikube/operator
     pullPolicy: IfNotPresent
     tag: release-v1.0.2
   args:
@@ -314,19 +284,18 @@ operator:
               - linux
   serviceAccount:
     annotations: {}
-  monitoring:
-    create: false
-  networkPolicy:
-    create: false
 
 apiServer:
   # Specifies whether the api-server should be created
   create: false
+  monitoring:
+    create: false
+  networkPolicy:
+    create: false
   replicas: 1
   image:
-    repository: quay.io/harikube/kube-apiserver
     pullPolicy: IfNotPresent
-    tag: v1.35.4
+    tag: v1.36.0
   args:
   - --service-cluster-ip-range=10.96.0.0/16
   - --bind-address=0.0.0.0
@@ -381,7 +350,7 @@ apiServer:
   volumes:
   - name: data
     persistentVolumeClaim:
-      claimName: data-harikube-vcluster-0
+      claimName: data-harikube-0
       readOnly: true
   - name: etcd-certs
     secret:
@@ -436,19 +405,18 @@ apiServer:
               operator: In
               values:
               - linux
-  monitoring:
-    create: false
-  networkPolicy:
-    create: false
 
 controllerManager:
   # Specifies whether the controller-manager should be created
   create: false
+  monitoring:
+    create: false
+  networkPolicy:
+    create: false
   replicas: 1
   image:
-    repository: quay.io/harikube/kube-controller-manager
     pullPolicy: IfNotPresent
-    tag: v1.35.4
+    tag: v1.36.0
   args:
   - --service-cluster-ip-range=10.96.0.0/16
   - --authentication-kubeconfig=/etc/kubernetes/kubeconfig/config
@@ -497,7 +465,7 @@ controllerManager:
   volumes:
   - name: data
     persistentVolumeClaim:
-      claimName: data-harikube-vcluster-0
+      claimName: data-harikube-0
       readOnly: true
   - name: kubeconfig
     secret:
@@ -505,7 +473,7 @@ controllerManager:
       items:
       - key: config
         path: config
-      secretName: vc-harikube-vcluster
+      secretName: vc-harikube
   - name: harikube-controller-manager-crt
     secret:
       defaultMode: 420
@@ -547,7 +515,122 @@ controllerManager:
               operator: In
               values:
               - linux
-  monitoring:
-    create: false
-  networkPolicy:
-    create: false
+
+vcluster:
+  controlPlane:
+    distro:
+      k8s:
+        enabled: true
+        image:
+          registry: quay.io
+          repository: harikube/kubernetes
+          tag: v1.36.0
+        imagePullPolicy: IfNotPresent
+        apiServer:
+          enabled: true
+          extraArgs:
+          - --feature-gates=WatchList=true,WatchListClient=true,VolumeAttributesClass=true,MutatingAdmissionPolicy=true,CustomResourceFieldSelectors=true
+          - --watch-cache=false
+          - --etcd-servers=https://harikube-middleware-svc:2379
+          - --etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt
+          - --etcd-certfile=/etc/kubernetes/pki/etcd/tls.crt
+          - --etcd-keyfile=/etc/kubernetes/pki/etcd/tls.key
+          - --runtime-config=admissionregistration.k8s.io/v1=true
+          - --storage-media-type=application/json
+          - --max-requests-inflight=900
+          - --max-mutating-requests-inflight=300
+        controllerManager:
+          enabled: true
+          extraArgs:
+          - --controllers=*,-nodeipam,-persistentvolume-binder,-attachdetach,-persistentvolume-expander,-cloud-node-lifecycle,-ttl
+          - --feature-gates=WatchList=true,WatchListClient=true,VolumeAttributesClass=true,MutatingAdmissionPolicy=true,CustomResourceFieldSelectors=true
+          - --kube-api-burst=90
+          - --kube-api-qps=60
+        scheduler:
+          enabled: true
+    coredns:
+      enabled: true
+    backingStore:
+      etcd:
+        embedded:
+          enabled: false
+        deploy:
+          enabled: false
+      database:
+        embedded:
+          enabled: false
+    statefulSet:
+      highAvailability:
+        replicas: 1
+      persistence:
+        volumeClaim:
+          enabled: true
+          accessModes:
+          - ReadWriteOnce
+          retentionPolicy: Retain
+          size: 5G
+          storageClass: standard
+        addVolumes:
+        - name: etcd-certs
+          secret:
+            secretName: harikube-middleware-crt
+            items:
+            - key: ca.crt
+              path: ca.crt
+            - key: tls.crt
+              path: tls.crt
+            - key: tls.key
+              path: tls.key
+        addVolumeMounts:
+        - name: etcd-certs
+          mountPath: /etc/kubernetes/pki/etcd
+          readOnly: true
+    serviceMonitor:
+      enabled: false
+  exportKubeConfig:
+    context: harikube-context
+    server: https://harikube.harikube:443
+  sync:
+    toHost:
+      pods:
+        enabled: true
+      secrets:
+        enabled: true
+      configMaps:
+        enabled: true
+      services:
+        enabled: true
+      endpoints:
+        enabled: true
+      ingresses:
+        enabled: true
+      networkPolicies:
+        enabled: true
+      persistentVolumes:
+        enabled: true
+      persistentVolumeClaims:
+        enabled: true
+      storageClasses:
+        enabled: true
+      serviceAccounts:
+        enabled: true
+      podDisruptionBudgets:
+        enabled: true
+      priorityClasses:
+        enabled: true
+    fromHost:
+      nodes:
+        enabled: true
+      secrets:
+        enabled: true
+        mappings:
+          byName:
+            "harikube/topology-config": "harikube/topology-config"
+            "harikube/harikube-middleware-crt": "harikube/harikube-middleware-crt"
+  networking:
+    replicateServices:
+      fromHost:
+      - from: harikube/harikube
+        to: harikube/harikube
+      - from: harikube/harikube-middleware-svc
+        to: harikube/harikube-middleware-svc

@@ -15,7 +15,7 @@ spec:
       {{- toYaml . | nindent 6 }}
       {{- end }}
       app: vcluster
-      release: harikube-vcluster
+      release: harikube
   template:
     metadata:
       {{- with .Values.apiServer.podAnnotations }}
@@ -28,7 +28,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
         app: vcluster
-        release: harikube-vcluster
+        release: harikube
     spec:
       terminationGracePeriodSeconds: 30
       {{- with .Values.apiServer.affinity }}
@@ -45,11 +45,9 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.apiServer.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
-      {{- end }}
       containers:
       - name: kube-apiserver
-        image: "{{ .Values.apiServer.image.repository }}:{{ .Values.apiServer.image.tag }}"
+        image: "quay.io/harikube/kube-apiserver:{{ .Values.apiServer.image.tag }}"
         imagePullPolicy: {{ .Values.apiServer.image.pullPolicy }}
         command:
         - kube-apiserver
