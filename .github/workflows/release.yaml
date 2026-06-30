@@ -53,8 +53,7 @@ jobs:
 
       - name: Helm push chart
         run: |
-          cp harikube-${{ steps.extract_version.outputs.version }}.tgz harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz
-          devbox run helm push harikube-helm-charts-${{ steps.extract_version.outputs.version }}.tgz oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}
+          devbox run helm push harikube-${{ steps.extract_version.outputs.version }}.tgz oci://${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}
 
       - name: Create release
         if: ${{ !startsWith(github.ref, 'refs/heads/dev-') }}
@@ -70,7 +69,7 @@ jobs:
             - Cert-manager
 
             ```bash
-            helm install harikube oci://quay.io/harikube/harikube-helm-charts \
+            helm install harikube oci://quay.io/harikube/harikube \
               --version ${{ steps.extract_version.outputs.version }} \
               --dependency-update \
               --create-namespace \
