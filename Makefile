@@ -38,6 +38,7 @@ render:
 
 .PHONY: test
 test:
+	helm plugin install https://github.com/helm-unittest/helm-unittest ||:
 	helm unittest --debug --with-subchart=false ./harikube
 
 .PHONY: setup-test
