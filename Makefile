@@ -66,6 +66,8 @@ _setup-e2e:
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-apiserver=enabled --overwrite
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
 
+	$(KUBECTL) apply -f operator-crd.yaml
+
 	$(HELM) install harikube ./harikube \
 		--debug \
 		--dependency-update \
