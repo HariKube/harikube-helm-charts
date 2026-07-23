@@ -20,7 +20,7 @@ middleware:
     create: false
   image:
     pullPolicy: IfNotPresent
-    tag: release-v0.15.0
+    tag: release-v0.16.3
   env:
   - name: ENABLE_TELEMETRY_PUSH
     value: "false"
