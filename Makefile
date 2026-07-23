@@ -36,6 +36,10 @@ render:
 		--set controllerManager.monitoring.create=true \
 		--set controllerManager.networkPolicy.create=true
 
+.PHONY: test
+test:
+	helm unittest --debug --with-subchart=false ./harikube
+
 .PHONY: setup-test
 setup-test: cleanup-test
 	$(KIND) create cluster --name $(KIND_CLUSTER)

@@ -1,4 +1,4 @@
-name: E2E
+name: E2E Test
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
     branches: [main]
   
 jobs:
-  lint:
+  test:
     name: Run on Ubuntu
     runs-on: ubuntu-latest
     steps:

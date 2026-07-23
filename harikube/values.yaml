@@ -76,7 +76,7 @@ middleware:
   # - --poll-batch-size=500
   podAnnotations: {}
   podLabels:
-    app: harikube-middleware
+    app.kubernetes.io/component: harikube-middleware
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -194,7 +194,7 @@ operator:
   # - --webhook-cert-key=tls.key
   podAnnotations: {}
   podLabels:
-    app: harikube-operator
+    app.kubernetes.io/component: harikube-operator
   podSecurityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -330,7 +330,7 @@ apiServer:
   - --max-mutating-requests-inflight=300
   podAnnotations: {}
   podLabels:
-    app: harikube-api-server
+    app.kubernetes.io/component: harikube-api-server
   podSecurityContext: {}
   securityContext:
     allowPrivilegeEscalation: false
@@ -445,7 +445,7 @@ controllerManager:
   - --tls-private-key-file=/etc/harikube-controller-manager-crt/tls.key
   podAnnotations: {}
   podLabels:
-    app: harikube-controller-manager
+    app.kubernetes.io/component: harikube-controller-manager
   podSecurityContext: {}
   securityContext:
     allowPrivilegeEscalation: false
