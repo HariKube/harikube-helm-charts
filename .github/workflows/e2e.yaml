@@ -11,7 +11,11 @@ on:
 
   pull_request:
     branches: [main]
-  
+
+concurrency: 
+  group: ${{ github.ref_name }}-e2e
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run on Ubuntu
