@@ -67,6 +67,9 @@ jobs:
 
             - Kubernetes cluster; supported versions Vanilla, EKS, AKS, GKE, RKE2, OpenShift >=1.34.0
             - Cert-manager
+            - Adding CRDs via `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube/refs/heads/${{ steps.extract_branch.outputs.branch }}/operator-crd.yaml`
+
+            ### Helm Deploy
 
             ```bash
             helm install harikube oci://quay.io/harikube/harikube \
