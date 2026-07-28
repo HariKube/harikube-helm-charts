@@ -294,7 +294,7 @@ apiServer:
   replicas: 1
   image:
     pullPolicy: IfNotPresent
-    tag: v1.36.0
+    tag: v1.36.2
   args:
   - --service-cluster-ip-range=10.96.0.0/16
   - --bind-address=0.0.0.0
@@ -415,7 +415,7 @@ controllerManager:
   replicas: 1
   image:
     pullPolicy: IfNotPresent
-    tag: v1.36.0
+    tag: v1.36.2
   args:
   - --service-cluster-ip-range=10.96.0.0/16
   - --authentication-kubeconfig=/etc/kubernetes/kubeconfig/config
@@ -523,7 +523,7 @@ vcluster:
         image:
           registry: quay.io
           repository: harikube/kubernetes
-          tag: v1.36.0
+          tag: v1.36.2
         imagePullPolicy: IfNotPresent
         apiServer:
           enabled: true
