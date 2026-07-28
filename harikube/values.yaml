@@ -559,6 +559,10 @@ vcluster:
         embedded:
           enabled: false
     statefulSet:
+      image:
+        registry: quay.io
+        repository: harikube/vcluster-pro
+        tag: 0.32.1
       highAvailability:
         replicas: 1
       persistence:

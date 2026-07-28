@@ -161,4 +161,4 @@ spec:
         duration: 5s
     - script:
         content: |
-          kubectl logs -n harikube -l app=harikube-middleware --since=0 | grep -q 'Backends registered: \[shirts namespace main\]'
+          kubectl logs -n harikube -l app.kubernetes.io/component=harikube-middleware --since=0 | grep -q 'Backends registered: \[shirts namespace main\]'
