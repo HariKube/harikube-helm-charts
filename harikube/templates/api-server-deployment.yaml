@@ -47,7 +47,7 @@ spec:
         {{- toYaml .Values.apiServer.podSecurityContext | nindent 8 }}
       containers:
       - name: kube-apiserver
-        image: "quay.io/harikube/kube-apiserver:{{ .Values.apiServer.image.tag }}"
+        image: "quay.io/harikube/kube-apiserver:{{ .Values.apiServer.image.tag }}-rootless"
         imagePullPolicy: {{ .Values.apiServer.image.pullPolicy }}
         command:
         - kube-apiserver

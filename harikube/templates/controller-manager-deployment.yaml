@@ -43,7 +43,7 @@ spec:
         {{- toYaml .Values.controllerManager.podSecurityContext | nindent 8 }}
       containers:
       - name: controller-manager
-        image: "quay.io/harikube/kube-controller-manager:{{ .Values.controllerManager.image.tag }}"
+        image: "quay.io/harikube/kube-controller-manager:{{ .Values.controllerManager.image.tag }}-rootless"
         imagePullPolicy: {{ .Values.controllerManager.image.pullPolicy }}
         command:
         - kube-controller-manager
