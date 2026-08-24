@@ -79,17 +79,17 @@ middleware:
     app.kubernetes.io/component: harikube-middleware
   podSecurityContext:
     runAsNonRoot: true
-    runAsUser: 65532
-    runAsGroup: 65532
-    fsGroup: 65532
+    runAsUser: null
+    runAsGroup: null
+    fsGroup: null
     fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   securityContext:
     allowPrivilegeEscalation: false
     runAsNonRoot: true
-    runAsUser: 65532
-    runAsGroup: 65532
+    runAsUser: null
+    runAsGroup: null
     readOnlyRootFilesystem: true
     capabilities:
       drop:
@@ -197,17 +197,17 @@ operator:
     app.kubernetes.io/component: harikube-operator
   podSecurityContext:
     runAsNonRoot: true
-    runAsUser: 65532
-    runAsGroup: 65532
-    fsGroup: 65532
+    runAsUser: null
+    runAsGroup: null
+    fsGroup: null
     fsGroupChangePolicy: OnRootMismatch
     seccompProfile:
       type: RuntimeDefault
   securityContext:
     allowPrivilegeEscalation: false
     runAsNonRoot: true
-    runAsUser: 65532
-    runAsGroup: 65532
+    runAsUser: null
+    runAsGroup: null
     readOnlyRootFilesystem: true
     capabilities:
       drop:
@@ -331,11 +331,25 @@ apiServer:
   podAnnotations: {}
   podLabels:
     app.kubernetes.io/component: harikube-api-server
-  podSecurityContext: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: null
+    runAsGroup: null
+    fsGroup: null
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
   securityContext:
     allowPrivilegeEscalation: false
-    runAsGroup: 0
-    runAsUser: 0
+    runAsNonRoot: true
+    runAsUser: null
+    runAsGroup: null
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+    seccompProfile:
+      type: RuntimeDefault
   service:
     apiServer:
       type: ClusterIP
@@ -446,11 +460,25 @@ controllerManager:
   podAnnotations: {}
   podLabels:
     app.kubernetes.io/component: harikube-controller-manager
-  podSecurityContext: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: null
+    runAsGroup: null
+    fsGroup: null
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile:
+      type: RuntimeDefault
   securityContext:
     allowPrivilegeEscalation: false
-    runAsGroup: 0
-    runAsUser: 0
+    runAsNonRoot: true
+    runAsUser: null
+    runAsGroup: null
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+    seccompProfile:
+      type: RuntimeDefault
   service:
     https:
       type: ClusterIP
@@ -547,6 +575,17 @@ vcluster:
           - --kube-api-qps=60
         scheduler:
           enabled: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: null
+          runAsGroup: null
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
     coredns:
       enabled: true
     backingStore:
@@ -559,6 +598,26 @@ vcluster:
         embedded:
           enabled: false
     statefulSet:
+      security:
+        podSecurityContext:
+          runAsNonRoot: true
+          runAsUser: null
+          runAsGroup: null
+          fsGroup: null
+          fsGroupChangePolicy: OnRootMismatch
+          seccompProfile:
+            type: RuntimeDefault
+        containerSecurityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: null
+          runAsGroup: null
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
       image:
         registry: quay.io
         repository: harikube/vcluster-pro
@@ -590,6 +649,12 @@ vcluster:
           readOnly: true
     serviceMonitor:
       enabled: false
+  rbac:
+    role:
+      extraRules:
+        - apiGroups: [""]
+          resources: ["endpoints/restricted"]
+          verbs: ["create"]
   exportKubeConfig:
     context: harikube-context
     server: https://harikube.harikube:443
