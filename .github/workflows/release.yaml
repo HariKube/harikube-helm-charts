@@ -74,7 +74,6 @@ jobs:
             ```bash
             helm install harikube oci://quay.io/harikube/harikube \
               --version ${{ steps.extract_version.outputs.version }} \
-              --dependency-update \
               --create-namespace \
               --namespace harikube
             kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m

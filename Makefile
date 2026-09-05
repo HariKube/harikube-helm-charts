@@ -75,7 +75,6 @@ _setup-e2e:
 
 	$(HELM) install harikube ./harikube \
 		--debug \
-		--dependency-update \
 		--namespace $(NAMESPACE) \
 		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
 		--set enterprise.user=harikube \
