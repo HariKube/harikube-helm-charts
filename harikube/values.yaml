@@ -601,17 +601,12 @@ vcluster:
       security:
         podSecurityContext:
           runAsNonRoot: true
-          runAsUser: null
-          runAsGroup: null
-          fsGroup: null
           fsGroupChangePolicy: OnRootMismatch
           seccompProfile:
             type: RuntimeDefault
         containerSecurityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
-          runAsUser: null
-          runAsGroup: null
           readOnlyRootFilesystem: true
           capabilities:
             drop:
