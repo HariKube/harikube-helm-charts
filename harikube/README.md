@@ -1,10 +1,27 @@
 # HariKube
 
-## What is this?
+## 🧭 What Is HariKube?
 
-Normally, Kubernetes uses a database called ETCD. [Kine](https://github.com/k3s-io/kine) (the origin of this project) is a tool that allows Kubernetes to use other databases (like SQLite, MySQL or PostgreSQL) instead.
+**HariKube is a petabyte-scale, versioned state machine for any kind of data - using Kubernetes as its API and Kafka as its real-time event stream.**
 
-This specific version of Kine is unique because it handles filtering adirectly at the database level, which can make your cluster much faster and more efficient.
+### What It Does  
+
+It acts as a single, central source of truth that tracks every single state change over time (versioning) across your entire system.
+
+#### Imagine a Webshop on HariKube:  
+
+An order isn't scattered across five isolated databases. It exists as a single versioned state object. When a customer purchases an item, your CNCF-compliant service processes the state transition (Created > Paid > Shipped), HariKube tracks the entire history, and streams the updates in real time - all through one unified API.
+
+### Why It Matters
+
+* **The Big Picture:** Standard Kubernetes breaks when forced to handle massive business state because consensus and memory have hard ceilings. HariKube replaces etcd with heavy-duty database engines, turning Kubernetes into a massive, resilient and scalable state platform.
+* **For Operators:** You manage drastically fewer clusters and infrastructure layers because HariKube handles your scale in well-known databases, eliminating cluster sprawl and operational overhead.
+* **For Developers:** It solves the trade-off between monoliths and microservices:
+  * *Monolith simplicity:* One consistent state engine with full history - no more fragile sync code or data silos.
+  * *Microservice power:* High-throughput event streaming (Kafka) and horizontal scaling out of the box.
+* **For Your Business:** By unifying your business data and infrastructure into a single state engine, HariKube eliminates the custom integration code and sync pipelines that usually delay launches, letting you ship new features in days instead of months.
+
+> ✅ HariKube isn't a Kubernetes-inspired API or a custom control plane that happens to look like Kubernetes. It is designed to preserve Kubernetes API semantics and has passed the Kubernetes conformance test suite. Test it today.
 
 ## Why this fork exists?
 
@@ -76,7 +93,119 @@ Open-Source edition is designed to interface with a single backend database inst
 
 ## Installation
 
-For installation details please follow release notes.
+### Prerequisets
+
+- Kubernetes cluster; supported versions Vanilla, EKS, AKS, GKE, RKE2, OpenShift >=1.34.0
+- Adding CRDs if any of the `monitoring.create` is `true` via `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/${{ steps.extract_branch.outputs.branch }}/operator-crd.yaml`
+
+### Helm Deploy
+
+```bash
+helm install harikube oci://quay.io/harikube/harikube \
+    --version ${{ steps.extract_version.outputs.version }} \
+    --create-namespace \
+    --namespace harikube \
+    --set vcluster.exportKubeConfig.server=https://harikube.harikube:443
+kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
+```
+
+> If you change namespace, please `--set vcluster.exportKubeConfig.server=https://harikube.<NAMESPACE>:443`
+
+You can integrate services with cert-manager.
+
+```bash
+--set certManagerIntegration.create=true
+```
+
+You can enable network policies. You have to create namespace manually, label the namespace and skip `--create-namespace` flag.
+
+```bash
+--set middleware.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-middleware=enabled --overwrite
+```
+
+You can enable ServiceMonitors for middleware.
+
+```bash
+--set middleware.monitoring.create=true
+```
+
+You can enable the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
+
+```bash
+--set mutatingAdmissionPolicy.create=true
+```
+
+You can enable a scalable contorl plane extension.
+
+```bash
+--set apiServer.create=true
+--set controllerManager.create=true # By default all controllers are disabled, enable controllers you want to run.
+```
+
+You can enable network policies for control plane.
+
+```bash
+--set apiServer.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-apiserver=enabled --overwrite
+--set controllerManager.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-controllermanager=enabled --overwrite
+```
+
+You can enable ServiceMonitors per service.
+
+```bash
+--set apiServer.monitoring.create=true
+--set controllerManager.monitoring.create=true
+```
+
+#### Enterprise Editioin
+
+Set `enterprise.key`, `enterprise.user` and `enterprise.password`, then set `operator.create=true` and the chart will deploy licensed edition to the target cluster.
+
+## vCluster connection
+
+Connect via vCluster CLI.
+
+```bash
+vcluster connect harikube
+```
+
+Connect via vCluster KUBECONFIG.
+
+```bash
+kubectl get secret -n harikube vc-harikube -o yaml
+```
+
+> 🔓 vCluster simplifies the operational workflow by automatically updating your local environment. For more details how to disable this behaviour, or how to get config by service account for example please wisit the official docs` [Access and expose vCluster](https://www.vcluster.com/docs/vcluster/manage/accessing-vcluster) section.
+
+> 🔓 For service access from host, the vCluster setup keeps things simple: Create your ServiceAccount, create a secret annotated with `kubernetes.io/service-account.name` (example below), and vCluster will sync the secret to the host cluster.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+    name: remote-your-service-account-name
+    annotations:
+    kubernetes.io/service-account.name: "your-service-account-name"
+type: kubernetes.io/service-account-token
+```
+
+On the host cluster, you can fetch the connection details.
+
+```bash
+KUBE_API_URL=harikube.harikube.svc.cluster.local
+TOKEN=$(kubectl get secret -n harikube remote-your-service-account-name-x-default-x-harikube -o jsonpath='{.data.token}' | base64 -d)
+CA_CERT=$(kubectl get secret -n harikube remote-your-service-account-name-x-default-x-harikube -o jsonpath='{.data.ca\.crt}' | base64 -d)
+```
+
+## Customization
+
+The manifests gereted for the release are covering basic setup. You can customize your setup, by changing `vcluster` values.
+
+## Important Requirement
+
+To use these features to their full potential, you cannot use "standard" Kubernetes. You must use the patched images provided by us These patches allow the Kubernetes API to understand the special storage instructions Kine is waiting for.
+
+- [Kubernetes Patches](https://github.com/HariKube/kubernetes-patches)
+- [Patched Images](https://quay.io/repository/harikube/kubernetes?tab=tags&tag=latest)
 
 ## 🤝 Contribution Guide
 
