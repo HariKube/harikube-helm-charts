@@ -30,5 +30,10 @@ jobs:
         with:
           enable-cache: 'true'
 
-      - name: Run tester
+      - name: Run tester helm-cert
         run: devbox run make test-integration
+
+      - name: Run tester cert-manager
+        run: devbox run make test-integration
+        env:
+          CERT_MANAGER: true

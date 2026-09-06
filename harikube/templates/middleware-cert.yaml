@@ -1,4 +1,5 @@
 {{- if .Values.middleware.create -}}
+{{- if .Values.certManagerIntegration.create -}}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -28,4 +29,7 @@ spec:
     kind: Issuer
     name: harikube-middleware-issuer
   secretName: harikube-middleware-crt
+{{- else -}}
+{{ include "harikube.generateTlsSecret" (dict "root" . "component" "middleware") }}
+{{- end }}
 {{- end }}

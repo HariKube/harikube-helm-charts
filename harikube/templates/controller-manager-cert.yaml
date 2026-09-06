@@ -1,4 +1,5 @@
 {{- if .Values.controllerManager.create -}}
+{{- if .Values.certManagerIntegration.create -}}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -28,4 +29,7 @@ spec:
     kind: Issuer
     name: harikube-controller-manager-issuer
   secretName: harikube-controller-manager-crt
+{{- else -}}
+{{ include "harikube.generateTlsSecret" (dict "root" . "component" "controller-manager") }}
+{{- end }}
 {{- end }}

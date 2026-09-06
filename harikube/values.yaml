@@ -7,6 +7,9 @@ enterprise:
   user: ""
   password: ""
 
+certManagerIntegration:
+  create: false
+
 mutatingAdmissionPolicy:
   # Specifies whether the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching should be created
   create: false
@@ -168,7 +171,6 @@ middleware:
     resources:
       requests:
         storage: 5Gi
-    storageClassName: standard
 
 operator:
   # Specifies whether the operator should be created
@@ -626,7 +628,6 @@ vcluster:
           - ReadWriteOnce
           retentionPolicy: Retain
           size: 5G
-          storageClass: standard
         addVolumes:
         - name: etcd-certs
           secret:
@@ -652,7 +653,7 @@ vcluster:
           verbs: ["create"]
   exportKubeConfig:
     context: harikube-context
-    server: https://harikube.harikube:443
+    server: https://harikube.default:443
   sync:
     toHost:
       pods:

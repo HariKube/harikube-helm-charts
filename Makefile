@@ -4,6 +4,7 @@ MAKEFLAGS += --no-print-directory
 NAMESPACE = harikube
 SECRET_DIR ?= .vscode
 KIND_CLUSTER ?= harikube-helm-chart-test
+CERT_MANAGER ?= false
 
 HELM ?= helm
 YAMLLINT ?= yamllint
@@ -34,22 +35,31 @@ render:
 		--set apiServer.networkPolicy.create=true \
 		--set controllerManager.create=true \
 		--set controllerManager.monitoring.create=true \
-		--set controllerManager.networkPolicy.create=true
+		--set controllerManager.networkPolicy.create=true \
+		--set certManagerIntegration.create=$(CERT_MANAGER) \
+		--set vcluster.exportKubeConfig.server=https://harikube.harikube:443
 
 .PHONY: test
 test:
 	helm plugin install https://github.com/helm-unittest/helm-unittest ||:
 	helm unittest --debug --with-subchart=false ./harikube
 
+.PHONY: package
+package:
+	helm package ./harikube
+
 .PHONY: setup-test
 setup-test: cleanup-test
 	$(KIND) create cluster --name $(KIND_CLUSTER)
 	$(KUBECTL) wait --for=condition=Ready node/$(KIND_CLUSTER)-control-plane --timeout=120s
 
-	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
 	$(KUBECTL) apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.77.1/stripped-down-crds.yaml
+
+ifeq ($(CERT_MANAGER),true)
+	$(KUBECTL) apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
 	$(KUBECTL) wait -n cert-manager --for=jsonpath='{.status.readyReplicas}'=1 deployment/cert-manager-webhook --timeout=2m
 	sleep 5
+endif
 
 .PHONY: test-integration
 test-integration: setup-test _test-integration
@@ -88,7 +98,9 @@ _setup-e2e:
 		--set apiServer.networkPolicy.create=true \
 		--set controllerManager.create=true \
 		--set controllerManager.monitoring.create=true \
-		--set controllerManager.networkPolicy.create=true
+		--set controllerManager.networkPolicy.create=true \
+		--set certManagerIntegration.create=$(CERT_MANAGER) \
+		--set vcluster.exportKubeConfig.server=https://harikube.harikube:443
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m

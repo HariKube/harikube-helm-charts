@@ -75,12 +75,19 @@ jobs:
             helm install harikube oci://quay.io/harikube/harikube \
               --version ${{ steps.extract_version.outputs.version }} \
               --create-namespace \
-              --namespace harikube
+              --namespace harikube \
+              --set vcluster.exportKubeConfig.server=https://harikube.harikube:443
             kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
             ```
 
-            > If you change namespace, please `--set vcluster.exportKubeConfigserver=https://harikube.<NAMESPACE>:443`
+            > If you change namespace, please `--set vcluster.exportKubeConfig.server=https://harikube.<NAMESPACE>:443`
 
+            You can integrate services with cert-manager.
+
+            ```bash
+            --set certManagerIntegration.create=true
+            ```
+            
             You can enable network policies. You have to create namespace manually, label the namespace and skip `--create-namespace` flag.
 
             ```bash

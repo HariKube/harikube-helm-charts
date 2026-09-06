@@ -1,4 +1,5 @@
 {{- if .Values.operator.create -}}
+{{- if .Values.certManagerIntegration.create -}}
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -28,6 +29,7 @@ spec:
     kind: Issuer
     name: harikube-operator-issuer
   secretName: harikube-operator-crt
+
 {{ if .Values.operator.monitoring.create }}
 ---
 apiVersion: cert-manager.io/v1
@@ -50,4 +52,12 @@ spec:
     name: harikube-operator-issuer
   secretName: harikube-operator-metrics-crt
 {{ end }}
+
+{{- else }}
+{{ include "harikube.generateTlsSecret" (dict "root" . "component" "operator") }}
+{{ if .Values.operator.monitoring.create }}
+---
+{{ include "harikube.generateTlsSecret" (dict "root" . "component" "operator-metrics") }}
+{{ end }}
+{{- end }}
 {{- end }}
