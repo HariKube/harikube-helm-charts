@@ -20,7 +20,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Generates a self-signed TLS Secret with component-specific SANs.
 Usage:
-  {{ include "harikube.generateTlsSecret" (dict "root" . "component" "api-server") }}
+  {{ include "harikube.generateTlsSecret" (dict "root" . "component" "middleware") }}
 */}}
 {{- define "harikube.generateTlsSecret" -}}
 {{- $root := .root -}}
@@ -53,6 +53,7 @@ Usage:
       "*.nodes.vcluster.com"
       "harikube"
       (printf "harikube.%s" $ns)
+      $svcName
       (printf "%s.%s" $svcName $ns)
       (printf "%s.%s.svc" $svcName $ns)
       (printf "%s.%s.cluster.local" $svcName $ns)
