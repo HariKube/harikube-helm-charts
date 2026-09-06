@@ -96,7 +96,7 @@ Open-Source edition is designed to interface with a single backend database inst
 ### Prerequisets
 
 - Kubernetes cluster; supported versions Vanilla, EKS, AKS, GKE, RKE2, OpenShift >=1.34.0
-- Adding CRDs if any of the `monitoring.create` is `true` via `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/${{ steps.extract_branch.outputs.branch }}/operator-crd.yaml`
+- Prometheus if any of the monitoring.create is true 
 
 ### Helm Deploy
 
