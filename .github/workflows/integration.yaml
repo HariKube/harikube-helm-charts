@@ -21,6 +21,9 @@ jobs:
     name: Run on Ubuntu
     runs-on: ubuntu-latest
     if: ${{ ! contains(github.event.head_commit.message, '+E2E') }}
+    strategy:
+      matrix:
+        certManager: [ false, true ]
     steps:
       - name: Clone the code
         uses: actions/checkout@v4
@@ -30,10 +33,7 @@ jobs:
         with:
           enable-cache: 'true'
 
-      - name: Run tester helm-cert
-        run: devbox run make test-integration
-
-      - name: Run tester cert-manager
+      - name: Run tester
         run: devbox run make test-integration
         env:
-          CERT_MANAGER: true
+          CERT_MANAGER: ${{ matrix.certManager }}

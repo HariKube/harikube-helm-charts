@@ -21,6 +21,9 @@ jobs:
     name: Run on Ubuntu
     runs-on: ubuntu-latest
     if: ${{ contains(github.event.head_commit.message, '+E2E') }}
+    strategy:
+      matrix:
+        certManager: [ false, true ]
     steps:
       - name: Clone the code
         uses: actions/checkout@v4
@@ -38,3 +41,5 @@ jobs:
 
       - name: Run tester
         run: devbox run make test-e2e
+        env:
+          CERT_MANAGER: ${{ matrix.certManager }}

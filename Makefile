@@ -37,7 +37,7 @@ render:
 		--set controllerManager.monitoring.create=true \
 		--set controllerManager.networkPolicy.create=true \
 		--set certManagerIntegration.create=$(CERT_MANAGER) \
-		--set vcluster.exportKubeConfig.server=https://harikube.harikube:443
+		--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
 
 .PHONY: test
 test:
@@ -100,7 +100,7 @@ _setup-e2e:
 		--set controllerManager.monitoring.create=true \
 		--set controllerManager.networkPolicy.create=true \
 		--set certManagerIntegration.create=$(CERT_MANAGER) \
-		--set vcluster.exportKubeConfig.server=https://harikube.harikube:443
+		--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
