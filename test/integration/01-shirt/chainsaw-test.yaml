@@ -17,6 +17,8 @@ spec:
           kind: CustomResourceDefinition
           metadata:
             name: shirts.stable.example.com
+    - sleep:
+        duration: 5s
     - apply:
         resource:
           apiVersion: stable.example.com/v1
