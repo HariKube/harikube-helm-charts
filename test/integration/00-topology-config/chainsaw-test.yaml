@@ -103,7 +103,7 @@ spec:
             targetSecret: harikube/topology-config
             backends:
             - name: namespace
-              endpoint: sqlite://./db/namespace.db?_journal=WAL&cache=shared
+              endpoint: sqlite://./db/namespace.db?_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate&_stmt_cache_size=20&cache=shared
               namespace:
                 namespace: test
     - assert:
@@ -151,7 +151,7 @@ spec:
             (base64_decode("2-topologyconfig-namespace.yaml")): |
               backends:
               - name: namespace
-                endpoint: sqlite://./db/namespace.db?_journal=WAL&cache=shared
+                endpoint: sqlite://./db/namespace.db?_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate&_stmt_cache_size=20&cache=shared
                 namespace:
                   namespace: test
                   kinds: []
