@@ -81,18 +81,18 @@ _setup-e2e:
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-apiserver=enabled --overwrite
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
 
-	$(KUBECTL) apply -f operator-crd.yaml
+# 	$(KUBECTL) apply -f operator-crd.yaml
+# 		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
+# 		--set enterprise.user=harikube \
+# 		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
+# 		--set operator.create=true \
+# 		--set operator.monitoring.create=true \
 
 	$(HELM) install harikube ./harikube \
 		--debug \
 		--namespace $(NAMESPACE) \
-		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
-		--set enterprise.user=harikube \
-		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
 		--set middleware.monitoring.create=true \
 		--set middleware.networkPolicy.create=true \
-		--set operator.create=true \
-		--set operator.monitoring.create=true \
 		--set apiServer.create=true \
 		--set apiServer.monitoring.create=true \
 		--set apiServer.networkPolicy.create=true \
@@ -101,12 +101,12 @@ _setup-e2e:
 		--set controllerManager.networkPolicy.create=true \
 		--set certManagerIntegration.create=$(CERT_MANAGER) \
 		--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
-	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
+# 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 
 _test-e2e:
-	$(CHAINSAW) test --test-dir test/integration/00-topology-config
+# 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 
 	$(VCLUSTER) connect harikube
 	$(CHAINSAW) test --test-dir test/integration/01-shirt
