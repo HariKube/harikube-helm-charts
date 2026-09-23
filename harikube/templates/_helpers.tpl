@@ -18,64 +18,52 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Generates a self-signed TLS Secret with component-specific SANs.
-Usage:
-  {{ include "harikube.generateTlsSecret" (dict "root" . "component" "middleware") }}
+Generates a single shared TLS certificate context and caches it in .Values.
+This guarantees that Secret and Webhook Configuration use the EXACT SAME CA instance 
+on first install before the secret exists in the API server.
 */}}
-{{- define "harikube.generateTlsSecret" -}}
+{{/*
+Generates/retrieves a cached TLS certificate context keyed by secretName.
+Guarantees that Secret and Webhook Configuration use the EXACT SAME CA instance 
+per secret on first install before the secret exists in the API server.
+*/}}
+{{- define "harikube.getOrGenTls" -}}
 {{- $root := .root -}}
-{{- $comp := .component -}}
+{{- $secretName := .secretName -}}
+{{- $cn := .cn -}}
 {{- $ns := $root.Release.Namespace -}}
 
-{{- $secretName := printf "harikube-%s-crt" $comp -}}
-{{- $cn := printf "harikube-%s" $comp -}}
-{{- $svcName := printf "harikube-%s-svc" $comp -}}
+{{/* Initialize the root tlsCache map if it doesn't exist yet */}}
+{{- if not $root.Values.tlsCache -}}
+  {{- $_ := set $root.Values "tlsCache" (dict) -}}
+{{- end -}}
 
-{{- $existingSecret := lookup "v1" "Secret" $ns $secretName -}}
+{{/* Check if this specific secretName has already been cached during this render run */}}
+{{- if not (hasKey $root.Values.tlsCache $secretName) -}}
+  {{- $existingSecret := lookup "v1" "Secret" $ns $secretName -}}
+  {{- $caCert := "" -}}
+  {{- $tlsCert := "" -}}
+  {{- $tlsKey := "" -}}
 
-{{- $caCert := "" -}}
-{{- $tlsCert := "" -}}
-{{- $tlsKey := "" -}}
+  {{- if $existingSecret -}}
+    {{/* Secret exists on cluster (upgrade run) */}}
+    {{- $caCert = index $existingSecret.data "ca.crt" -}}
+    {{- $tlsCert = index $existingSecret.data "tls.crt" -}}
+    {{- $tlsKey = index $existingSecret.data "tls.key" -}}
+  {{- else -}}
+    {{/* First install: generate once and store in memory */}}
+    {{- $ca := genCA (printf "%s-ca" $cn) 3650 -}}
+    {{- $altNames := list $cn (printf "%s.%s" $cn $ns) (printf "%s.%s.svc" $cn $ns) (printf "%s.%s.svc.cluster.local" $cn $ns) -}}
+    {{- $cert := genSignedCert $cn nil $altNames 3650 $ca -}}
+    {{- $caCert = $ca.Cert | b64enc -}}
+    {{- $tlsCert = $cert.Cert | b64enc -}}
+    {{- $tlsKey = $cert.Key | b64enc -}}
+  {{- end -}}
 
-{{- if $existingSecret }}
-  {{- $caCert = index $existingSecret.data "ca.crt" -}}
-  {{- $tlsCert = index $existingSecret.data "tls.crt" -}}
-  {{- $tlsKey = index $existingSecret.data "tls.key" -}}
-{{- else }}
-  {{- $ca := genCA (printf "%s-ca" $cn) 3650 -}}
-  {{- $altNames := list
-      "kubernetes.default.svc.cluster.local"
-      "kubernetes.default.svc"
-      "kubernetes.default"
-      "kubernetes"
-      "localhost"
-      (printf "*.harikube.%s.nodes.vcluster.com" $ns)
-      "*.nodes.vcluster.com"
-      "harikube"
-      (printf "harikube.%s" $ns)
-      $svcName
-      (printf "%s.%s" $svcName $ns)
-      (printf "%s.%s.svc" $svcName $ns)
-      (printf "%s.%s.cluster.local" $svcName $ns)
-      (printf "%s.%s.svc.cluster.local" $svcName $ns)
-  -}}
-  {{- $cert := genSignedCert $cn nil $altNames 365 $ca -}}
+  {{/* Store in tlsCache map keyed by secretName */}}
+  {{- $_ := set $root.Values.tlsCache $secretName (dict "caCert" $caCert "tlsCert" $tlsCert "tlsKey" $tlsKey) -}}
+{{- end -}}
 
-  {{- $caCert = $ca.Cert | b64enc -}}
-  {{- $tlsCert = $cert.Cert | b64enc -}}
-  {{- $tlsKey = $cert.Key | b64enc -}}
-{{- end }}
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: {{ $secretName }}
-  namespace: {{ $ns }}
-  labels:
-    {{- include "harikube.labels" $root | nindent 4 }}
-type: kubernetes.io/tls
-data:
-  ca.crt: {{ $caCert }}
-  tls.crt: {{ $tlsCert }}
-  tls.key: {{ $tlsKey }}
+{{/* Return cached dict for this specific secretName */}}
+{{- (index $root.Values.tlsCache $secretName) | toYaml -}}
 {{- end -}}

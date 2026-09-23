@@ -36,6 +36,16 @@ spec:
     name: harikube-api-server-issuer
   secretName: harikube-api-server-crt
 {{- else -}}
-{{ include "harikube.generateTlsSecret" (dict "root" . "component" "api-server") }}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "harikube-api-server-crt" "cn" "harikube-api-server-svc") | fromYaml -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harikube-api-server-crt
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $tls.caCert }}
+  tls.crt: {{ $tls.tlsCert }}
+  tls.key: {{ $tls.tlsKey }}
 {{- end }}
 {{- end }}

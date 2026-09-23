@@ -30,6 +30,16 @@ spec:
     name: harikube-middleware-issuer
   secretName: harikube-middleware-crt
 {{- else -}}
-{{ include "harikube.generateTlsSecret" (dict "root" . "component" "middleware") }}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "harikube-middleware-crt" "cn" "harikube-middleware-svc") | fromYaml -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harikube-middleware-crt
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $tls.caCert }}
+  tls.crt: {{ $tls.tlsCert }}
+  tls.key: {{ $tls.tlsKey }}
 {{- end }}
 {{- end }}

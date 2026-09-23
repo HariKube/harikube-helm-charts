@@ -102,7 +102,7 @@ spec:
                         maxIdle:
                           minimum: 0
                           type: integer
-                        maxIdleLifeTime:
+                        maxIdleTime:
                           format: duration
                           type: string
                         maxLifeTime:

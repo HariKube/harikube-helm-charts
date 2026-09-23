@@ -54,10 +54,30 @@ spec:
 {{ end }}
 
 {{- else }}
-{{ include "harikube.generateTlsSecret" (dict "root" . "component" "operator") }}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "harikube-operator-crt" "cn" "harikube-operator-svc") | fromYaml -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harikube-operator-crt
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $tls.caCert }}
+  tls.crt: {{ $tls.tlsCert }}
+  tls.key: {{ $tls.tlsKey }}
 {{ if .Values.operator.monitoring.create }}
 ---
-{{ include "harikube.generateTlsSecret" (dict "root" . "component" "operator-metrics") }}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "harikube-operator-metrics-crt" "cn" "harikube-operator-metrics-svc") | fromYaml -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harikube-operator-metrics-crt
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $tls.caCert }}
+  tls.crt: {{ $tls.tlsCert }}
+  tls.key: {{ $tls.tlsKey }}
 {{ end }}
 {{- end }}
 {{- end }}

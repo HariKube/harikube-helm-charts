@@ -84,9 +84,9 @@ spec:
               endpoint: mysql://root:passwd@tcp(mysql-internal-service.harikube.svc.cluster.local:3306)/kine_db
               connectionPool:
                 maxIdle: 5
-                maxOpen: 90
-                maxLifeTime: 5m
-                maxIdleLifeTime: 5m
+                maxOpen: 9
+                maxLifeTime: 1m0s
+                maxIdleTime: 2m0s
               customresource:
                 group: stable.example.com
                 kind: shirts
@@ -142,9 +142,9 @@ spec:
                 endpoint: mysql://root:passwd@tcp(mysql-internal-service.harikube.svc.cluster.local:3306)/kine_db
                 connectionPool:
                   maxIdle: 5
-                  maxOpen: 90
-                  maxLifeTime: 5m0s
-                  maxIdleLifeTime: 5m0s
+                  maxOpen: 9
+                  maxLifeTime: 1m0s
+                  maxIdleTime: 2m0s
                 customresource:
                   group: stable.example.com
                   kind: shirts

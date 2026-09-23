@@ -33,6 +33,7 @@ define EE_SETS
 --set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
 --set enterprise.user=harikube \
 --set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
+--set middleware.endPoint.url="multi://sqlite:///db/main.db?_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate&_stmt_cache_size=20&cache=shared" \
 --set operator.create=true \
 --set operator.monitoring.create=true
 endef
@@ -47,7 +48,7 @@ lint:
 
 .PHONY: render
 render:
-	@echo $(HELM) template harikube ./harikube $(SETS) --debug
+	@$(HELM) template harikube ./harikube $(SETS) --debug
 
 .PHONY: test
 test:
@@ -76,10 +77,7 @@ test-integration: setup-test _test-integration
 	$(MAKE) cleanup-test
 
 _test-integration:
-	$(HELM) install harikube ./harikube \
-		--dry-run \
-		--debug \
-		--namespace $(NAMESPACE)
+	$(HELM) install harikube ./harikube --dry-run $(SETS) --debug
 
 .PHONY: test-e2e
 test-e2e: setup-test _setup-e2e _test-e2e

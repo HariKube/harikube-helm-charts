@@ -1,11 +1,14 @@
 {{- if .Values.operator.create -}}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "harikube-operator-crt" "cn" "harikube-operator-svc") | fromYaml -}}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
+{{ if .Values.certManagerIntegration.create }}
   annotations:
     cert-manager.io/inject-ca-from: harikube/harikube-operator-crt
+{{ end }}
   name: harikube-operator-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -15,6 +18,9 @@ webhooks:
       name: harikube-operator-svc
       namespace: {{ .Release.Namespace }}
       path: /validate-harikube-info-v1-topologyconfig
+    {{- if not .Values.certManagerIntegration.create }}
+    caBundle: {{ $tls.caCert }}
+    {{- end }}
   failurePolicy: Fail
   name: vtopologyconfig-v1.kb.io
   rules:

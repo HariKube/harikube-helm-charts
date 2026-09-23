@@ -30,6 +30,16 @@ spec:
     name: harikube-controller-manager-issuer
   secretName: harikube-controller-manager-crt
 {{- else -}}
-{{ include "harikube.generateTlsSecret" (dict "root" . "component" "controller-manager") }}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "harikube-controller-manager-crt" "cn" "harikube-controller-manager-svc") | fromYaml -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harikube-controller-manager-crt
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $tls.caCert }}
+  tls.crt: {{ $tls.tlsCert }}
+  tls.key: {{ $tls.tlsKey }}
 {{- end }}
 {{- end }}
