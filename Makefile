@@ -103,7 +103,7 @@ endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
-		$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-api-server-deploy --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-api-server-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-controller-manager-deploy --timeout=5m
 
 _test-e2e:
