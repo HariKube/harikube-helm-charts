@@ -5,6 +5,7 @@ NAMESPACE = harikube
 SECRET_DIR ?= .vscode
 KIND_CLUSTER ?= harikube-helm-chart-test
 CERT_MANAGER ?= false
+MODE ?= os
 
 HELM ?= helm
 YAMLLINT ?= yamllint
@@ -81,12 +82,7 @@ _setup-e2e:
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-apiserver=enabled --overwrite
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
 
-# 	$(KUBECTL) apply -f operator-crd.yaml
-# 		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
-# 		--set enterprise.user=harikube \
-# 		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
-# 		--set operator.create=true \
-# 		--set operator.monitoring.create=true \
+	$(KUBECTL) apply -f operator-crd.yaml
 
 	$(HELM) install harikube ./harikube \
 		--debug \
@@ -100,13 +96,24 @@ _setup-e2e:
 		--set controllerManager.monitoring.create=true \
 		--set controllerManager.networkPolicy.create=true \
 		--set certManagerIntegration.create=$(CERT_MANAGER) \
+ifeq ($(MODE),ee)
+		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
+		--set enterprise.user=harikube \
+		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
+		--set operator.create=true \
+		--set operator.monitoring.create=true \
+endif
 		--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
-# 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
+ifeq ($(MODE),ee)
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
+endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 
 _test-e2e:
-# 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
+ifeq ($(MODE),ee)
+	$(CHAINSAW) test --test-dir test/integration/00-topology-config
+endif
 
 	$(VCLUSTER) connect harikube
 	$(CHAINSAW) test --test-dir test/integration/01-shirt

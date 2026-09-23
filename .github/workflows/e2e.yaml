@@ -23,6 +23,7 @@ jobs:
     if: ${{ contains(github.event.head_commit.message, '+E2E') }}
     strategy:
       matrix:
+        mode: [ 'os', 'ee' ]
         certManager: [ false, true ]
     steps:
       - name: Clone the code
@@ -42,4 +43,5 @@ jobs:
       - name: Run tester
         run: devbox run make test-e2e
         env:
+          MODE: ${{ matrix.mode }}
           CERT_MANAGER: ${{ matrix.certManager }}
