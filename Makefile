@@ -24,6 +24,7 @@ define SETS
 --set controllerManager.create=true \
 --set controllerManager.monitoring.create=true \
 --set controllerManager.networkPolicy.create=true \
+--set serverlessKubeWatchTrigger.create=true \
 --set certManagerIntegration.create=$(CERT_MANAGER) \
 --set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
 endef
@@ -90,6 +91,7 @@ _setup-e2e:
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
 
 	$(KUBECTL) apply -f operator-crd.yaml
+	$(KUBECTL) apply -f serverless-kube-watch-trigger-crd.yaml
 
 	$(HELM) install harikube ./harikube $(SETS) --debug
 ifeq ($(MODE),ee)

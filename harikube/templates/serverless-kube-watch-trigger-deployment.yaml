@@ -1,0 +1,66 @@
+{{- if .Values.serverlessKubeWatchTrigger.create -}}
+{{- $registry := .Values.serverlessKubeWatchTrigger.image.registry -}}
+{{- $repository := default "harikube/serverless-kube-watch-trigger" .Values.serverlessKubeWatchTrigger.image.repository -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-controller-manager
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.serverlessKubeWatchTrigger.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: serverless-kube-watch-trigger
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        {{- with .Values.serverlessKubeWatchTrigger.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "harikube.labels" . | nindent 8 }}
+        app.kubernetes.io/name: serverless-kube-watch-trigger
+        control-plane: controller-manager
+        {{- with .Values.serverlessKubeWatchTrigger.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      terminationGracePeriodSeconds: 10
+      serviceAccountName: {{ include "harikube.serverlessKubeWatchTrigger.serviceAccountName" . }}
+      {{- with .Values.serverlessKubeWatchTrigger.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serverlessKubeWatchTrigger.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.serverlessKubeWatchTrigger.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.serverlessKubeWatchTrigger.podSecurityContext | nindent 8 }}
+      containers:
+      - args:
+          {{- toYaml .Values.serverlessKubeWatchTrigger.args | nindent 10 }}
+        command:
+        - /manager
+        image: "{{- if $registry -}}{{ $registry }}/{{- end -}}{{ $repository }}:{{ .Values.serverlessKubeWatchTrigger.image.tag }}"
+        imagePullPolicy: {{ .Values.serverlessKubeWatchTrigger.image.pullPolicy }}
+        livenessProbe:
+          {{- toYaml .Values.serverlessKubeWatchTrigger.livenessProbe | nindent 10 }}
+        name: manager
+        readinessProbe:
+          {{- toYaml .Values.serverlessKubeWatchTrigger.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.serverlessKubeWatchTrigger.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.serverlessKubeWatchTrigger.securityContext | nindent 10 }}
+{{- end }}

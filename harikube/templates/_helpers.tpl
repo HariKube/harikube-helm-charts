@@ -67,3 +67,10 @@ per secret on first install before the secret exists in the API server.
 {{/* Return cached dict for this specific secretName */}}
 {{- (index $root.Values.tlsCache $secretName) | toYaml -}}
 {{- end -}}
+
+{{/*
+Serverless kube watch trigger service account name
+*/}}
+{{- define "harikube.serverlessKubeWatchTrigger.serviceAccountName" -}}
+serverless-kube-watch-trigger-controller-manager
+{{- end -}}

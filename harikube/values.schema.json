@@ -167,6 +167,29 @@
         "affinity": { "type": "object" }
       }
     },
+    "serverlessKubeWatchTrigger": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "boolean" },
+        "replicaCount": { "type": "integer", "minimum": 0 },
+        "image": { "$ref": "#/definitions/containerImage" },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "podAnnotations": { "type": "object" },
+        "podLabels": { "type": "object" },
+        "podSecurityContext": { "type": "object" },
+        "securityContext": { "type": "object" },
+        "resources": { "type": "object" },
+        "livenessProbe": { "type": "object" },
+        "readinessProbe": { "type": "object" },
+        "nodeSelector": { "type": "object" },
+        "tolerations": { "type": "array", "items": { "type": "object" } },
+        "affinity": { "type": "object" },
+        "serviceAccount": { "type": "object" }
+      }
+    },
     "vcluster": {
       "type": "object",
       "properties": {

@@ -156,6 +156,14 @@ You can enable ServiceMonitors per service.
 --set controllerManager.monitoring.create=true
 ```
 
+You can enable the serverless kube watch trigger controller. It is deployed into the same namespace as the rest of the HariKube release.
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/serverless-kube-watch-trigger-crd.yaml
+helm upgrade --install harikube oci://quay.io/harikube/harikube \
+    --set serverlessKubeWatchTrigger.create=true
+```
+
 #### Enterprise Editioin
 
 - Apply Operator's `Custom Resource Definition` via: `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/operator-crd.yaml`

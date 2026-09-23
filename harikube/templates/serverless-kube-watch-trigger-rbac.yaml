@@ -1,0 +1,274 @@
+{{- if .Values.serverlessKubeWatchTrigger.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-leader-election-role
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-aitrigger-admin-role
+rules:
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers
+  verbs:
+  - '*'
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-aitrigger-editor-role
+rules:
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-aitrigger-viewer-role
+rules:
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-httptrigger-admin-role
+rules:
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - httptriggers
+  verbs:
+  - '*'
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - httptriggers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-httptrigger-editor-role
+rules:
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - httptriggers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - httptriggers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-httptrigger-viewer-role
+rules:
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - httptriggers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - httptriggers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers
+  - httptriggers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers/finalizers
+  - httptriggers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - triggers.harikube.info
+  resources:
+  - aitriggers/status
+  - httptriggers/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-leader-election-rolebinding
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: serverless-kube-watch-trigger-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "harikube.serverlessKubeWatchTrigger.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: serverless-kube-watch-trigger
+    control-plane: controller-manager
+  name: serverless-kube-watch-trigger-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: serverless-kube-watch-trigger-manager-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "harikube.serverlessKubeWatchTrigger.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

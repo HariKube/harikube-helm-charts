@@ -546,6 +546,78 @@ controllerManager:
               values:
               - linux
 
+serverlessKubeWatchTrigger:
+  # Specifies whether the serverless kube watch trigger controller should be created
+  create: false
+  replicaCount: 1
+  image:
+    repository: harikube/serverless-kube-watch-trigger
+    pullPolicy: IfNotPresent
+    tag: beta-v1.0.0-8--dirty
+  args:
+  - --leader-elect
+  - --health-probe-bind-address=:8081
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext:
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/arch
+            operator: In
+            values:
+            - arm64
+            - amd64
+            - s390x
+            - ppc64le
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+  serviceAccount:
+    annotations: {}
+
 vcluster:
   controlPlane:
     distro:
