@@ -1,0 +1,40 @@
+{{- if .Values.apiExtension.create -}}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-controller-manager-metrics-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.apiExtension.service.metrics.type }}
+  ports:
+  - name: https
+    port: {{ .Values.apiExtension.service.metrics.port }}
+    protocol: TCP
+    targetPort: {{ .Values.apiExtension.service.metrics.port }}
+  selector:
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-v1-api-extension
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.apiExtension.service.api.type }}
+  ports:
+  - port: {{ .Values.apiExtension.service.api.port }}
+    protocol: TCP
+    targetPort: {{ .Values.apiExtension.service.api.targetPort }}
+  selector:
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+{{- end }}

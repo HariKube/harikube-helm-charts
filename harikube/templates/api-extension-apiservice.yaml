@@ -1,0 +1,29 @@
+{{- if .Values.apiExtension.create -}}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "v1-api-extension-crt" "cn" "api-extension-v1-api-extension") | fromYaml -}}
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  {{- if .Values.certManagerIntegration.create }}
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/api-extension-v1-api-extension-cert
+  {{- end }}
+  name: v1.apiserver.api-extension.harikube.info
+spec:
+  {{- if not .Values.certManagerIntegration.create }}
+  caBundle: {{ $tls.caCert }}
+  {{- else }}
+  caBundle: ""
+  {{- end }}
+  group: apiserver.api-extension.harikube.info
+  groupPriorityMinimum: 1000
+  service:
+    name: api-extension-v1-api-extension
+    namespace: {{ .Release.Namespace }}
+    port: {{ .Values.apiExtension.service.api.port }}
+  version: v1
+  versionPriority: 10
+{{- end }}

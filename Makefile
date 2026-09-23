@@ -25,6 +25,7 @@ define SETS
 --set controllerManager.monitoring.create=true \
 --set controllerManager.networkPolicy.create=true \
 --set serverlessKubeWatchTrigger.create=true \
+--set apiExtension.create=true \
 --set certManagerIntegration.create=$(CERT_MANAGER) \
 --set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
 endef
@@ -92,15 +93,21 @@ _setup-e2e:
 
 	$(KUBECTL) apply -f operator-crd.yaml
 	$(KUBECTL) apply -f serverless-kube-watch-trigger-crd.yaml
+	$(KUBECTL) apply -f api-extension-crd.yaml
 
 	$(HELM) install harikube ./harikube $(SETS) --debug
 ifeq ($(MODE),ee)
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-api-server-deploy --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-controller-manager-deploy --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 
 _test-e2e:
+	$(CHAINSAW) test --test-dir test/integration/01-infra
 ifeq ($(MODE),ee)
 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 endif

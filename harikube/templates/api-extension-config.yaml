@@ -1,0 +1,26 @@
+{{- if .Values.apiExtension.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-core-resources
+  namespace: {{ .Release.Namespace }}
+data:
+  resources: {{ .Values.apiExtension.coreResources | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-harikube-connection
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+stringData:
+  harikube.url: {{ printf "https://harikube-middleware-svc.%s:2379" .Release.Namespace | quote }}
+{{- end }}

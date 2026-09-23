@@ -164,6 +164,14 @@ helm upgrade --install harikube oci://quay.io/harikube/harikube \
     --set serverlessKubeWatchTrigger.create=true
 ```
 
+You can enable the api-extension controller. It is deployed into the same namespace as the rest of the HariKube release.
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/api-extension-crd.yaml
+helm upgrade --install harikube oci://quay.io/harikube/harikube \
+    --set apiExtension.create=true
+```
+
 #### Enterprise Editioin
 
 - Apply Operator's `Custom Resource Definition` via: `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/operator-crd.yaml`

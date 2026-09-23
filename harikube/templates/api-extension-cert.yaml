@@ -1,0 +1,49 @@
+{{- if .Values.apiExtension.create -}}
+{{- if .Values.certManagerIntegration.create -}}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-v1-api-extension-ca
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-v1-api-extension-cert
+  namespace: {{ .Release.Namespace }}
+spec:
+  commonName: api-extension-v1-api-extension.{{ .Release.Namespace }}.svc
+  dnsNames:
+  - api-extension-v1-api-extension.{{ .Release.Namespace }}.svc
+  - api-extension-v1-api-extension.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    name: api-extension-v1-api-extension-ca
+  secretName: v1-api-extension-crt
+{{- else }}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "v1-api-extension-crt" "cn" "api-extension-v1-api-extension") | fromYaml -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: v1-api-extension-crt
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/tls
+data:
+  ca.crt: {{ $tls.caCert }}
+  tls.crt: {{ $tls.tlsCert }}
+  tls.key: {{ $tls.tlsKey }}
+{{- end }}
+{{- end }}
