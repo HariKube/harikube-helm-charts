@@ -158,7 +158,7 @@ You can enable ServiceMonitors per service.
 
 #### Enterprise Editioin
 
-- Apply Operator's `Custom Resource Definition` via: `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/${{ steps.extract_branch.outputs.branch }}/operator-crd.yaml`
+- Apply Operator's `Custom Resource Definition` via: `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/operator-crd.yaml`
 - Set `enterprise.key`, `enterprise.user` and `enterprise.password`, then set `operator.create=true` and the chart will deploy licensed edition to the target cluster.
 
 ## vCluster connection
