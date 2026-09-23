@@ -14,6 +14,31 @@ KUBECTL ?= kubectl
 CHAINSAW ?= chainsaw
 VCLUSTER ?= vcluster
 
+define SETS
+--namespace $(NAMESPACE) \
+--set middleware.monitoring.create=true \
+--set middleware.networkPolicy.create=true \
+--set apiServer.create=true \
+--set apiServer.monitoring.create=true \
+--set apiServer.networkPolicy.create=true \
+--set controllerManager.create=true \
+--set controllerManager.monitoring.create=true \
+--set controllerManager.networkPolicy.create=true \
+--set certManagerIntegration.create=$(CERT_MANAGER) \
+--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
+endef
+
+ifeq ($(MODE),ee)
+define EE_SETS
+--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
+--set enterprise.user=harikube \
+--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
+--set operator.create=true \
+--set operator.monitoring.create=true
+endef
+SETS += $(EE_SETS)
+endif
+	
 .PHONY: lint
 lint:
 	$(HELM) lint ./harikube
@@ -22,23 +47,7 @@ lint:
 
 .PHONY: render
 render:
-	@$(HELM) template harikube ./harikube \
-		--debug \
-		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
-		--set enterprise.user=harikube \
-		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
-		--set middleware.monitoring.create=true \
-		--set middleware.networkPolicy.create=true \
-		--set operator.create=true \
-		--set operator.monitoring.create=true \
-		--set apiServer.create=true \
-		--set apiServer.monitoring.create=true \
-		--set apiServer.networkPolicy.create=true \
-		--set controllerManager.create=true \
-		--set controllerManager.monitoring.create=true \
-		--set controllerManager.networkPolicy.create=true \
-		--set certManagerIntegration.create=$(CERT_MANAGER) \
-		--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
+	@echo $(HELM) template harikube ./harikube $(SETS) --debug
 
 .PHONY: test
 test:
@@ -84,26 +93,7 @@ _setup-e2e:
 
 	$(KUBECTL) apply -f operator-crd.yaml
 
-	$(HELM) install harikube ./harikube \
-		--debug \
-		--namespace $(NAMESPACE) \
-		--set middleware.monitoring.create=true \
-		--set middleware.networkPolicy.create=true \
-		--set apiServer.create=true \
-		--set apiServer.monitoring.create=true \
-		--set apiServer.networkPolicy.create=true \
-		--set controllerManager.create=true \
-		--set controllerManager.monitoring.create=true \
-		--set controllerManager.networkPolicy.create=true \
-		--set certManagerIntegration.create=$(CERT_MANAGER) \
-ifeq ($(MODE),ee)
-		--set enterprise.key="$$(cat $(SECRET_DIR)/license)" \
-		--set enterprise.user=harikube \
-		--set enterprise.password="$$(head -1 $(SECRET_DIR)/credential)" \
-		--set operator.create=true \
-		--set operator.monitoring.create=true \
-endif
-		--set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
+	$(HELM) install harikube ./harikube $(SETS) --debug
 ifeq ($(MODE),ee)
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 endif
