@@ -553,7 +553,7 @@ serverlessKubeWatchTrigger:
   image:
     repository: harikube/serverless-kube-watch-trigger
     pullPolicy: IfNotPresent
-    tag: beta-v1.0.0-8--dirty
+    tag: beta-v1.0.0-8
   args:
   - --leader-elect
   - --health-probe-bind-address=:8081
@@ -626,7 +626,7 @@ apiExtension:
   image:
     repository: harikube/api-extension
     pullPolicy: IfNotPresent
-    tag: alpha-v1.0.0-1-
+    tag: alpha-v1.0.0-1
   args:
   - --metrics-bind-address=:8443
   - --leader-elect=false
