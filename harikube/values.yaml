@@ -67,9 +67,10 @@ middleware:
   # - --metrics-ignore-tls-config=true
   - --slow-sql-threshold=2s
   # - --slow-sql-warning-threshold=5s
-  - --datastore-max-idle-connections=50
-  - --datastore-max-open-connections=90
-  - --datastore-connection-max-lifetime=5m
+  - --datastore-max-idle-connections=5
+  - --datastore-max-open-connections=9
+  - --datastore-connection-max-lifetime=1m
+  - --datastore-connection-max-idle-time=2m
   # - --watch-progress-notify-interval=5s
   # - --compact-interval=5m
   # - --compact-interval-jitter=0
