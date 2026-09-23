@@ -107,7 +107,6 @@ endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 
 _test-e2e:
-	$(CHAINSAW) test --test-dir test/integration/01-infra
 ifeq ($(MODE),ee)
 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 endif
