@@ -26,6 +26,7 @@ spec:
         {{- end }}
     spec:
       terminationGracePeriodSeconds: 30
+      serviceAccountName: lease-manager
       {{- with .Values.middleware.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
