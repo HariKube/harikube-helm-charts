@@ -547,13 +547,12 @@ controllerManager:
               - linux
 
 serverlessKubeWatchTrigger:
-  # Specifies whether the serverless kube watch trigger controller should be created
   create: false
   replicaCount: 1
   image:
     repository: quay.io/harikube/serverless-kube-watch-trigger
     pullPolicy: IfNotPresent
-    tag: beta-v1.0.0-8
+    tag: beta-v1.0.0-7
   args:
   - --leader-elect
   - --health-probe-bind-address=:8081
@@ -615,9 +614,9 @@ serverlessKubeWatchTrigger:
             operator: In
             values:
             - linux
-  serviceAccount:
-    annotations: {}
-
+  volumes: []
+  
+  
 apiExtension:
   # Specifies whether the api-extension should be created
   create: false
