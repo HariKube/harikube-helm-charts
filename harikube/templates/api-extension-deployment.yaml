@@ -58,6 +58,21 @@ spec:
             configMapKeyRef:
               key: resources
               name: api-extension-core-resources
+        - name: HARIKUBE_URLS
+          valueFrom:
+            secretKeyRef:
+              name: api-extension-harikube-connection
+              key: harikube-urls
+        - name: DECISION_MAKER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: api-extension-decision-maker
+              key: url
+        - name: DECISION_MAKER_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: api-extension-decision-maker
+              key: timeout
         image: "{{- if $registry -}}{{ $registry }}/{{- end -}}{{ $repository }}:{{ .Values.apiExtension.image.tag }}"
         imagePullPolicy: {{ .Values.apiExtension.image.pullPolicy }}
         livenessProbe:
@@ -77,20 +92,55 @@ spec:
         - mountPath: /tmp/k8s-apiserver-server/serving-certs
           name: apiserver-certs
           readOnly: true
-        - mountPath: /tmp/harikube-connection
-          name: harikube-connection
-          readOnly: true
         - mountPath: /tmp/harikube-middleware-crt
           name: harikube-middleware-crt
           readOnly: true
+      - name: decision-maker
+        image: node:18-alpine
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DECISION_MAKER_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              name: api-extension-decision-maker
+              key: provider
+        - name: DECISION_MAKER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: api-extension-decision-maker
+              key: port
+        - name: LAYA_CACHE
+          valueFrom:
+            configMapKeyRef:
+              name: api-extension-decision-maker
+              key: laya-cache
+        - name: DECISION_MAKER_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: api-extension-decision-maker
+              key: timeout
+        command:
+        - node
+        - /opt/decision-maker/server.mjs
+        volumeMounts:
+        - name: decision-maker-script
+          mountPath: /opt/decision-maker/server.mjs
+          subPath: server.mjs
+          readOnly: true
+        {{- with .Values.apiExtension.volumeMounts }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
       - name: apiserver-certs
         secret:
           secretName: v1-api-extension-crt
-      - name: harikube-connection
-        secret:
-          secretName: api-extension-harikube-connection
       - name: harikube-middleware-crt
         secret:
           secretName: harikube-middleware-crt
+      - name: decision-maker-script
+        configMap:
+          name: api-extension-decision-maker
+      {{- with .Values.apiExtension.volumes }}
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
 {{- end }}

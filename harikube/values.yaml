@@ -626,7 +626,7 @@ apiExtension:
   image:
     repository: quay.io/harikube/api-extension
     pullPolicy: IfNotPresent
-    tag: alpha-v1.0.0-1
+    tag: beta-v1.0.0-2
   args:
   - --metrics-bind-address=:8443
   - --leader-elect=false
@@ -636,7 +636,9 @@ apiExtension:
   - --apiserver-port=:7443
   - --apiserver-cert-file=/tmp/k8s-apiserver-server/serving-certs/tls.crt
   - --apiserver-key-file=/tmp/k8s-apiserver-server/serving-certs/tls.key
-  - --harikube-urls=/tmp/harikube-connection/harikube.url
+  - --harikube-urls=$(HARIKUBE_URLS)
+  - --decision-maker-url=$(DECISION_MAKER_URL)
+  - --decision-maker-timeout=$(DECISION_MAKER_TIMEOUT)
   - --harikube-cert-file=/tmp/harikube-middleware-crt/tls.crt
   - --harikube-key-file=/tmp/harikube-middleware-crt/tls.key
   - --harikube-ca-file=/tmp/harikube-middleware-crt/ca.crt
@@ -706,6 +708,13 @@ apiExtension:
             operator: In
             values:
             - linux
+  volumes:
+  - name: api-extension-decision-maker-cache
+    persistentVolumeClaim:
+      claimName: api-extension-decision-maker-cache
+  volumeMounts:
+  - name: api-extension-decision-maker-cache
+    mountPath: /var/cache/laya
   serviceAccount:
     annotations: {}
 
