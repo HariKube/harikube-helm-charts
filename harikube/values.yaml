@@ -615,6 +615,10 @@ serverlessKubeWatchTrigger:
             values:
             - linux
   volumes: []
+  leaderElection:
+    enabled: true
+  scalingConfigMapLabelerPolicy:
+    apiVersion: v1
   
   
 apiExtension:
