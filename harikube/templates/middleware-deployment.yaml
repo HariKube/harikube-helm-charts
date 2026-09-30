@@ -52,10 +52,12 @@ spec:
         image: "quay.io/harikube/harikube:{{ .Values.middleware.image.tag }}"
         {{- end }}
         imagePullPolicy: {{ .Values.middleware.image.pullPolicy }}
-        {{- with .Values.middleware.env }}
         env:
+        {{- with .Values.middleware.env }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+        - name: GLOBAL_LEASE_NAMESPACE
+          value: {{ .Release.Namespace }}
         args:
         - --endpoint={{ .Values.middleware.endPoint.url }}
         {{- if .Values.middleware.endPoint.caPEM }}
