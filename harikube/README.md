@@ -159,7 +159,7 @@ You can enable ServiceMonitors per service.
 You can enable the serverless kube watch trigger controller. It is deployed into the same namespace as the rest of the HariKube release.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/serverless-kube-watch-trigger-crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/main/serverless-kube-watch-trigger-crd.yaml
 helm upgrade --install harikube oci://quay.io/harikube/harikube \
     --set serverlessKubeWatchTrigger.create=true
 ```
@@ -167,7 +167,7 @@ helm upgrade --install harikube oci://quay.io/harikube/harikube \
 You can enable the api-extension controller. It is deployed into the same namespace as the rest of the HariKube release.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/api-extension-crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/main/api-extension-crd.yaml
 helm upgrade --install harikube oci://quay.io/harikube/harikube \
     --set apiExtension.create=true
 ```
