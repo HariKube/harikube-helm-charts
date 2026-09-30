@@ -1,0 +1,26 @@
+{{- if and .Values.serverlessKubeWatchTrigger.create (not .Values.serverlessKubeWatchTrigger.leaderElection.enabled) -}}
+apiVersion: admissionregistration.k8s.io/{{ .Values.serverlessKubeWatchTrigger.scalingConfigMapLabelerPolicy.apiVersion }}
+kind: MutatingAdmissionPolicy
+metadata:
+  name: scaling-configmap-labeler
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: Never
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["configmaps"]
+  mutations:
+  - patchType: ApplyConfiguration
+    applyConfiguration:
+      expression: >
+        {
+          "metadata": {
+            "labels": {
+              "triggers.harikube.info/distribution": 'item-' + string(1 + ((size(object.metadata.namespace) + size(object.metadata.name)) % 100))
+            }
+          }
+        }
+{{- end -}}
