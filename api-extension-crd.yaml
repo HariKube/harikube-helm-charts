@@ -1,4 +1,3 @@
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -55,7 +54,6 @@ spec:
     served: true
     storage: true
     subresources: {}
----
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -127,26 +125,25 @@ spec:
     served: true
     storage: true
 ---
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
-  name: decisionresponses.api-extension.harikube.info
+  name: queries.api-extension.harikube.info
 spec:
   group: api-extension.harikube.info
   names:
-    kind: DecisionResponse
-    listKind: DecisionResponseList
-    plural: decisionresponses
-    singular: decisionresponse
+    kind: Query
+    listKind: QueryList
+    plural: queries
+    singular: query
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: DecisionResponse is the Schema for the DecisionResponses API
+        description: Query is the Schema for the Queries API
         properties:
           apiVersion:
             description: |-
@@ -166,23 +163,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: spec defines the observed state of DecisionResponse
-            properties:
-              answers:
-                description: Answers contains arbitrary JSON/YAML representing the
-                  decision answers
-                x-kubernetes-preserve-unknown-fields: true
-              usage:
-                description: Usage contains arbitrary JSON/YAML representing usage
-                  or metadata about the decision
-                x-kubernetes-preserve-unknown-fields: true
+            description: spec defines the desired state of Query
             type: object
         required:
         - spec
         type: object
     served: true
     storage: true
----
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -250,7 +237,6 @@ spec:
     served: true
     storage: true
 ---
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -306,58 +292,3 @@ spec:
     served: true
     storage: true
     subresources: {}
----
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
-  name: transactions.api-extension.harikube.info
-spec:
-  group: api-extension.harikube.info
-  names:
-    kind: Transaction
-    listKind: TransactionList
-    plural: transactions
-    singular: transaction
-  scope: Namespaced
-  versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: Transaction is the Schema for the Transactions API
-        properties:
-          apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
-            type: string
-          kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: spec defines the desired state of Transaction
-            properties:
-              resources:
-                items:
-                  format: byte
-                  type: string
-                type: array
-            required:
-            - resources
-            type: object
-        required:
-        - spec
-        type: object
-    served: true
-    storage: true

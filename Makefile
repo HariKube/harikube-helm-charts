@@ -83,7 +83,7 @@ _test-integration:
 
 .PHONY: test-e2e
 test-e2e: setup-test _setup-e2e _test-e2e
-	$(MAKE) cleanup-test
+# 	$(MAKE) cleanup-test
 
 _setup-e2e:
 	$(KUBECTL) create namespace $(NAMESPACE)

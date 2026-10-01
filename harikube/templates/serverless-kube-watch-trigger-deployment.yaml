@@ -51,8 +51,21 @@ spec:
         imagePullPolicy: {{ .Values.serverlessKubeWatchTrigger.image.pullPolicy }}
         command:
         - "/manager"
+        {{- $args := list }}
+        {{- with .Values.serverlessKubeWatchTrigger.args }}
+        {{- range . }}
+          {{- if not (or (hasPrefix . "--leader-elect") (eq . "--leader-elect")) }}
+            {{- $args = append $args . }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.serverlessKubeWatchTrigger.leaderElection.enabled }}
+          {{- $args = append $args "--leader-elect" }}
+        {{- else }}
+          {{- $args = append $args "--leader-elect=false" }}
+        {{- end }}
         args:
-          {{- toYaml .Values.serverlessKubeWatchTrigger.args | nindent 10 }}
+{{- toYaml $args | nindent 10 }}
         livenessProbe:
           {{- toYaml .Values.serverlessKubeWatchTrigger.livenessProbe | nindent 10 }}
         readinessProbe:

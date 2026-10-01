@@ -7,6 +7,8 @@ templates:
 
 tests:
   - it: should render Deployment and not render MutatingAdmissionPolicy when leaderElection enabled (true)
+    templates:
+      - serverless-kube-watch-trigger-deployment.yaml
     set:
       serverlessKubeWatchTrigger:
         create: true
@@ -27,6 +29,8 @@ tests:
           count: 1
 
   - it: should render Deployment with leader-election disabled when leaderElection enabled is false
+    templates:
+      - serverless-kube-watch-trigger-deployment.yaml
     set:
       serverlessKubeWatchTrigger:
         create: true
