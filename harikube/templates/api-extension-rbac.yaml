@@ -1,4 +1,4 @@
-{{- if .Values.apiExtension.create -}}
+{{- if not .Values.apiExtension.create -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:

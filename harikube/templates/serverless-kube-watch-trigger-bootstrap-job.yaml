@@ -1,0 +1,368 @@
+{{- if .Values.serverlessKubeWatchTrigger.create }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-serverless-kube-watch-trigger-bootstrap-job
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    component: serverless-kube-watch-trigger-bootstrap
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "harikube.labels" . | nindent 8 }}
+        component: serverless-kube-watch-trigger-bootstrap
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: OnFailure
+      containers:
+        - name: serverless-kube-watch-trigger-bootstrap
+          image: bitnami/kubectl:1.27.6
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
+          args:
+            - |
+              set -e
+              KUBECONFIG=/kubeconfig/config
+              export KUBECONFIG
+
+              # Wait for vCluster API to become ready (bounded loop)
+              for i in $(seq 1 30); do
+                if kubectl --kubeconfig="$KUBECONFIG" get --raw=/readyz >/dev/null 2>&1; then
+                  echo "vCluster ready"
+                  break
+                fi
+                echo "waiting for vCluster API... ($i)"
+                sleep 2
+              done
+
+              # Apply minimal local resources into the vCluster for serverless-kube-watch-trigger only
+              kubectl --kubeconfig="$KUBECONFIG" apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: serverless-kube-watch-trigger-controller-manager
+                namespace: {{ .Release.Namespace }}
+              ---
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: serverless-kube-watch-trigger-pi-agent-worker
+                namespace: {{ .Release.Namespace }}
+              ---
+              # Legacy namespaced Roles: leader election and worker
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: Role
+              metadata:
+                name: serverless-kube-watch-trigger-leader-election-role
+                namespace: {{ .Release.Namespace }}
+              rules:
+                - apiGroups: [""]
+                  resources: ["configmaps", "endpoints"]
+                  verbs: ["get", "create", "update", "patch", "list", "watch", "delete"]
+                - apiGroups: [""]
+                  resources: ["events"]
+                  verbs: ["create", "patch"]
+                - apiGroups: ["coordination.k8s.io"]
+                  resources: ["leases"]
+                  verbs: ["get", "create", "update", "patch", "list", "watch", "delete"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: Role
+              metadata:
+                name: serverless-kube-watch-trigger-pi-agent-worker
+                namespace: {{ .Release.Namespace }}
+              rules:
+                - apiGroups: ["batch"]
+                  resources: ["jobs"]
+                  verbs: ["create", "get", "list", "watch", "delete"]
+                - apiGroups: [""]
+                  resources: ["pods", "pods/exec", "secrets"]
+                  verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["pitriggers"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: [""]
+                  resources: ["events"]
+                  verbs: ["get", "list", "create", "update", "patch"]
+                - apiGroups: ["events.k8s.io"]
+                  resources: ["events"]
+                  verbs: ["get", "list", "create", "update", "patch"]
+                - apiGroups: [""]
+                  resources: ["configmaps"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: [""]
+                  resources: ["services"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+              ---
+              # ClusterRoles for httptrigger/pitrigger and manager/discovery
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-httptrigger-admin-role
+              rules:
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers", "httptriggers/status"]
+                  verbs: ["*"]
+                - apiGroups: [""]
+                  resources: ["services", "endpoints", "pods", "configmaps", "secrets"]
+                  verbs: ["*"]
+                - apiGroups: ["events.k8s.io"]
+                  resources: ["events"]
+                  verbs: ["create", "patch"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-httptrigger-editor-role
+              rules:
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers", "httptriggers/status"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: [""]
+                  resources: ["services", "endpoints", "pods", "configmaps"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: ["events.k8s.io"]
+                  resources: ["events"]
+                  verbs: ["create"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-httptrigger-viewer-role
+              rules:
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: [""]
+                  resources: ["services", "endpoints", "pods"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers/status"]
+                  verbs: ["get"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-manager-role
+              rules:
+                - apiGroups: ["", "apps", "batch"]
+                  resources: ["pods", "services", "deployments", "replicasets", "jobs"]
+                  verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers", "pitriggers"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers/status", "pitriggers/status"]
+                  verbs: ["get", "patch", "update"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["httptriggers/finalizers", "pitriggers/finalizers"]
+                  verbs: ["update"]
+                - apiGroups: [""]
+                  resources: ["configmaps", "secrets"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: ["coordination.k8s.io"]
+                  resources: ["leases"]
+                  verbs: ["get", "create", "update", "patch", "list", "watch", "delete"]
+                - apiGroups: ["events.k8s.io"]
+                  resources: ["events"]
+                  verbs: ["create", "patch"]
+                - apiGroups: [""]
+                  resources: ["events"]
+                  verbs: ["create", "update", "patch"]
+                - nonResourceURLs: ["/api", "/api/*", "/apis", "/apis/*"]
+                  verbs: ["get"]
+                - apiGroups: ["apiregistration.k8s.io"]
+                  resources: ["apiservices"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["apiextensions.k8s.io"]
+                  resources: ["customresourcedefinitions"]
+                  verbs: ["get", "list", "watch"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-pi-agent-worker-discovery
+              rules:
+                - apiGroups: [""]
+                  resources: ["namespaces", "services", "configmaps"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["apps"]
+                  resources: ["deployments"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["apiextensions.k8s.io"]
+                  resources: ["customresourcedefinitions"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["apiregistration.k8s.io"]
+                  resources: ["apiservices"]
+                  verbs: ["get", "list", "watch"]
+                - nonResourceURLs: ["/api", "/api/*", "/apis", "/apis/*"]
+                  verbs: ["get"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-pitrigger-admin-role
+              rules:
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["pitriggers", "pitriggers/status"]
+                  verbs: ["*"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-pitrigger-editor-role
+              rules:
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["pitriggers"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["pitriggers/status"]
+                  verbs: ["get"]
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: serverless-kube-watch-trigger-pitrigger-viewer-role
+              rules:
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["pitriggers"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["triggers.harikube.info"]
+                  resources: ["pitriggers/status"]
+                  verbs: ["get"]
+              ---
+              # Namespaced RoleBindings for leader election and worker
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: RoleBinding
+              metadata:
+                name: serverless-kube-watch-trigger-leader-election-rolebinding
+                namespace: {{ .Release.Namespace }}
+              subjects:
+                - kind: ServiceAccount
+                  name: serverless-kube-watch-trigger-controller-manager
+                  namespace: {{ .Release.Namespace }}
+              roleRef:
+                kind: Role
+                name: serverless-kube-watch-trigger-leader-election-role
+                apiGroup: rbac.authorization.k8s.io
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: RoleBinding
+              metadata:
+                name: serverless-kube-watch-trigger-pi-agent-worker
+                namespace: {{ .Release.Namespace }}
+              subjects:
+                - kind: ServiceAccount
+                  name: serverless-kube-watch-trigger-pi-agent-worker
+                  namespace: {{ .Release.Namespace }}
+              roleRef:
+                kind: Role
+                name: serverless-kube-watch-trigger-pi-agent-worker
+                apiGroup: rbac.authorization.k8s.io
+              ---
+              # ClusterRoleBindings for manager and discovery
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: serverless-kube-watch-trigger-manager-rolebinding
+              subjects:
+                - kind: ServiceAccount
+                  name: serverless-kube-watch-trigger-controller-manager
+                  namespace: {{ .Release.Namespace }}
+              roleRef:
+                kind: ClusterRole
+                name: serverless-kube-watch-trigger-manager-role
+                apiGroup: rbac.authorization.k8s.io
+              ---
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: serverless-kube-watch-trigger-pi-agent-worker-discovery-rolebinding
+              subjects:
+                - kind: ServiceAccount
+                  name: serverless-kube-watch-trigger-pi-agent-worker
+                  namespace: {{ .Release.Namespace }}
+              roleRef:
+                kind: ClusterRole
+                name: serverless-kube-watch-trigger-pi-agent-worker-discovery
+                apiGroup: rbac.authorization.k8s.io
+              EOF
+
+              # Build kubeconfig for the runtime ServiceAccount and store it as a Secret
+              NAMESPACE="{{ .Release.Namespace }}"
+
+              SERVER=$(kubectl --kubeconfig="$KUBECONFIG" config view --raw -o jsonpath='{.clusters[0].cluster.server}')
+              CA_DATA=$(kubectl --kubeconfig="$KUBECONFIG" config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+
+              get_sa_token() {
+                local ns="$1"; local sa="$2"
+                # Prefer TokenRequest (kubectl create token)
+                if token=$(kubectl --kubeconfig="$KUBECONFIG" create token "$sa" -n "$ns" 2>/dev/null); then
+                  echo "$token"
+                  return 0
+                fi
+                # Fallback: wait for secret of type kubernetes.io/service-account-token
+                for i in $(seq 1 30); do
+                  secret=$(kubectl --kubeconfig="$KUBECONFIG" -n "$ns" get secret -o jsonpath='{range .items[*]}{.metadata.name}:{.type}\n{end}' 2>/dev/null | awk -F: '/kubernetes.io\/service-account-token/{print $1; exit}') || true
+                  if [ -n "$secret" ]; then
+                    token_b64=$(kubectl --kubeconfig="$KUBECONFIG" -n "$ns" get secret "$secret" -o jsonpath='{.data.token}' 2>/dev/null || true)
+                    if [ -n "$token_b64" ]; then
+                      echo "$(echo "$token_b64" | base64 -d)"
+                      return 0
+                    fi
+                  fi
+                  sleep 2
+                done
+                return 1
+              }
+
+              create_kubeconfig_secret() {
+                local sa="$1"; local secret_name="$2"
+                echo "Creating kubeconfig for ServiceAccount $sa -> Secret $secret_name"
+                tok=$(get_sa_token "$NAMESPACE" "$sa") || { echo "failed to get token for $sa"; return 1; }
+
+                tmpkf="/tmp/kubeconfig-${secret_name}"
+                cat > "$tmpkf" <<KCFG
+              apiVersion: v1
+              kind: Config
+              clusters:
+              - name: vcluster
+                cluster:
+                  server: ${SERVER}
+                  certificate-authority-data: ${CA_DATA}
+              contexts:
+              - name: vcluster
+                context:
+                  cluster: vcluster
+                  user: ${sa}
+              current-context: vcluster
+              users:
+              - name: ${sa}
+                user:
+                  token: ${tok}
+              KCFG
+
+                # apply as opaque secret with key 'config'
+                kubectl --kubeconfig="$KUBECONFIG" -n "$NAMESPACE" create secret generic "$secret_name" --from-file=config="$tmpkf" --dry-run=client -o yaml | kubectl --kubeconfig="$KUBECONFIG" -n "$NAMESPACE" apply -f - >/dev/null
+                echo "applied secret $secret_name in $NAMESPACE"
+              }
+
+              # create secret for serverless-kube-watch-trigger only
+              create_kubeconfig_secret serverless-kube-watch-trigger-controller-manager vc-serverless-kube-watch-trigger
+
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /kubeconfig
+              readOnly: true
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: vc-harikube
+            items:
+              - key: config
+                path: config
+{{- end }}

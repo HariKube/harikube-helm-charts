@@ -33,6 +33,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       serviceAccountName: api-extension-controller-manager
+      automountServiceAccountToken: false
       {{- with .Values.apiExtension.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
@@ -73,6 +74,8 @@ spec:
             configMapKeyRef:
               name: api-extension-decision-maker
               key: timeout
+        - name: KUBECONFIG
+          value: /etc/kubernetes/kubeconfig/config
         image: "{{- if $registry -}}{{ $registry }}/{{- end -}}{{ $repository }}:{{ .Values.apiExtension.image.tag }}"
         imagePullPolicy: {{ .Values.apiExtension.image.pullPolicy }}
         livenessProbe:
@@ -95,6 +98,9 @@ spec:
         - mountPath: /tmp/harikube-middleware-crt
           name: harikube-middleware-crt
           readOnly: true
+        {{- with .Values.apiExtension.volumeMounts }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       - name: decision-maker
         image: node:18-alpine
         imagePullPolicy: IfNotPresent

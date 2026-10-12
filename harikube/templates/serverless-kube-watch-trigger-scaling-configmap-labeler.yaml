@@ -1,26 +1,35 @@
 {{- if and .Values.serverlessKubeWatchTrigger.create (not .Values.serverlessKubeWatchTrigger.leaderElection.enabled) -}}
-apiVersion: admissionregistration.k8s.io/{{ .Values.serverlessKubeWatchTrigger.scalingConfigMapLabelerPolicy.apiVersion }}
+apiVersion: admissionregistration.k8s.io/{{ .Values.mutatingAdmissionPolicy.apiVersion }}
 kind: MutatingAdmissionPolicy
 metadata:
-  name: scaling-configmap-labeler
+  name: trigger-distribution-labeler
 spec:
   failurePolicy: Fail
   reinvocationPolicy: Never
   matchConstraints:
     resourceRules:
-    - apiGroups: [""]
-      apiVersions: ["v1"]
-      operations: ["CREATE", "UPDATE"]
-      resources: ["configmaps"]
+      - apiGroups: ["triggers.harikube.info"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["httptriggers", "pitriggers"]
   mutations:
   - patchType: ApplyConfiguration
     applyConfiguration:
       expression: >
-        {
-          "metadata": {
-            "labels": {
-              "triggers.harikube.info/distribution": 'item-' + string(1 + ((size(object.metadata.namespace) + size(object.metadata.name)) % 100))
-            }
-          }
-        }
+        Object{metadata: Object.metadata{labels: {
+          "triggers.harikube.info/distribution": "item-" + string(1 + ((size(object.metadata.namespace) + size(object.metadata.name)) % 100))
+        }}}
+---
+apiVersion: admissionregistration.k8s.io/{{ .Values.mutatingAdmissionPolicy.apiVersion }}
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: trigger-distribution-labeler
+spec:
+  policyName: trigger-distribution-labeler
+  matchResources:
+    resourceRules:
+      - apiGroups: ["triggers.harikube.info"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["httptriggers", "pitriggers"]
 {{- end -}}

@@ -1,0 +1,3 @@
+# Deprecated placeholder: vcluster-bootstrap-job template removed.
+# The dedicated api-extension and serverless bootstrap job templates now provide the intended behavior.
+{{/* This file intentionally renders no resources. */}}

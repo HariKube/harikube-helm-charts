@@ -129,10 +129,10 @@ You can enable ServiceMonitors for middleware.
 --set middleware.monitoring.create=true
 ```
 
-You can enable the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
+You can enable the controllerManagerMutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
 
 ```bash
---set mutatingAdmissionPolicy.create=true
+--set controllerManagerMutatingAdmissionPolicy.create=true
 ```
 
 You can enable a scalable contorl plane extension.

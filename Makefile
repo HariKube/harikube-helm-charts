@@ -25,7 +25,9 @@ define SETS
 --set controllerManager.monitoring.create=true \
 --set controllerManager.networkPolicy.create=true \
 --set serverlessKubeWatchTrigger.create=true \
+--set serverlessKubeWatchTrigger.leaderElection.enabled=false \
 --set apiExtension.create=true \
+--set controllerManagerMutatingAdmissionPolicy.create=true \
 --set certManagerIntegration.create=$(CERT_MANAGER) \
 --set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
 endef
@@ -105,11 +107,14 @@ endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-api-server-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-controller-manager-deploy --timeout=5m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
+	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
 
 _test-e2e:
 ifeq ($(MODE),ee)
 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 endif
+	$(CHAINSAW) test test/integration/00-componenets/
 
 	$(VCLUSTER) connect harikube
 	$(CHAINSAW) test --test-dir test/integration/01-shirt

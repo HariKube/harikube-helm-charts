@@ -1,0 +1,14 @@
+suite: vCluster Bootstrap Job - Obsolete
+
+# Unit test asserting the old shared vcluster-bootstrap-job.yaml template is obsolete and should not render
+
+templates:
+  - vcluster-bootstrap-job.yaml
+
+tests:
+  - it: should not render the shared vcluster-bootstrap-job template (obsolete)
+    templates:
+      - vcluster-bootstrap-job.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

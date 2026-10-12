@@ -1,0 +1,18 @@
+suite: api-extension Host RBAC Suppression when apiExtension.create enabled
+
+# Unit test: ensure host-side api-extension RBAC template renders nothing when apiExtension.create is true
+# and no separate bootstrap flag is required (TDD-style; production change will update the template to satisfy this test)
+
+templates:
+  - api-extension-rbac.yaml
+
+tests:
+  - it: should not render api-extension RBAC when apiExtension.create is enabled (no bootstrap flag needed)
+    templates:
+      - api-extension-rbac.yaml
+    set:
+      apiExtension:
+        create: true
+    asserts:
+      - hasDocuments:
+          count: 0

@@ -11,6 +11,9 @@ certManagerIntegration:
   create: false
 
 mutatingAdmissionPolicy:
+  apiVersion: v1
+  
+controllerManagerMutatingAdmissionPolicy:
   # Specifies whether the MutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching should be created
   create: false
 
@@ -23,7 +26,7 @@ middleware:
     create: false
   image:
     pullPolicy: IfNotPresent
-    tag: release-v0.16.3
+    tag: dev-v0.16.4-3
   env:
   - name: ENABLE_TELEMETRY_PUSH
     value: "false"
@@ -552,7 +555,7 @@ serverlessKubeWatchTrigger:
   image:
     repository: quay.io/harikube/serverless-kube-watch-trigger
     pullPolicy: IfNotPresent
-    tag: beta-v1.0.0-7
+    tag: rc-v1.0.0-9
   args:
   - --leader-elect
   - --health-probe-bind-address=:8081
@@ -614,13 +617,21 @@ serverlessKubeWatchTrigger:
             operator: In
             values:
             - linux
-  volumes: []
+  volumes:
+  - name: kubeconfig
+    secret:
+      defaultMode: 420
+      items:
+      - key: config
+        path: config
+      secretName: vc-serverless-kube-watch-trigger
+  volumeMounts:
+  - name: kubeconfig
+    mountPath: /etc/kubernetes/kubeconfig
+    readOnly: true
   leaderElection:
     enabled: true
-  scalingConfigMapLabelerPolicy:
-    apiVersion: v1
-  
-  
+
 apiExtension:
   # Specifies whether the api-extension should be created
   create: false
@@ -629,7 +640,7 @@ apiExtension:
   image:
     repository: quay.io/harikube/api-extension
     pullPolicy: IfNotPresent
-    tag: beta-v1.0.0-2
+    tag: rc-v1.0.0-4
   args:
   - --metrics-bind-address=:8443
   - --leader-elect=false
@@ -715,9 +726,19 @@ apiExtension:
   - name: api-extension-decision-maker-cache
     persistentVolumeClaim:
       claimName: api-extension-decision-maker-cache
+  - name: kubeconfig
+    secret:
+      defaultMode: 420
+      items:
+      - key: config
+        path: config
+      secretName: vc-api-extension
   volumeMounts:
   - name: api-extension-decision-maker-cache
     mountPath: /var/cache/laya
+  - name: kubeconfig
+    mountPath: /etc/kubernetes/kubeconfig
+    readOnly: true
   serviceAccount:
     annotations: {}
 
@@ -872,6 +893,7 @@ vcluster:
           byName:
             "harikube/topology-config": "harikube/topology-config"
             "harikube/harikube-middleware-crt": "harikube/harikube-middleware-crt"
+            "harikube/v1-api-extension-crt": "harikube/v1-api-extension-crt"
   networking:
     replicateServices:
       fromHost:
@@ -879,3 +901,5 @@ vcluster:
         to: harikube/harikube
       - from: harikube/harikube-middleware-svc
         to: harikube/harikube-middleware-svc
+      - from: harikube/api-extension-v1-api-extension
+        to: harikube/api-extension-v1-api-extension

@@ -1,0 +1,279 @@
+{{- if .Values.apiExtension.create }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-api-extension-bootstrap-job
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    component: api-extension-bootstrap
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "harikube.labels" . | nindent 8 }}
+        component: api-extension-bootstrap
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: OnFailure
+      containers:
+        - name: api-extension-bootstrap
+          image: bitnami/kubectl:1.27.6
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
+          args:
+            - |
+              set -e
+              KUBECONFIG=/kubeconfig/config
+              export KUBECONFIG
+
+              # Wait for vCluster API to become ready (bounded loop)
+              for i in $(seq 1 30); do
+                if kubectl --kubeconfig="$KUBECONFIG" get --raw=/readyz >/dev/null 2>&1; then
+                  echo "vCluster ready"
+                  break
+                fi
+                echo "waiting for vCluster API... ($i)"
+                sleep 2
+              done
+
+              # Apply minimal local resources into the vCluster for api-extension only
+              kubectl --kubeconfig="$KUBECONFIG" apply -f - <<'EOF'
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: api-extension-controller-manager
+                namespace: {{ .Release.Namespace }}
+              ---
+              # ClusterRole for APIService management (existing minimal clusterrole)
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: api-extension-clusterrole
+              rules:
+                - apiGroups: ["apiregistration.k8s.io"]
+                  resources: ["apiservices"]
+                  verbs: ["get","list","watch","create","update","patch","delete"]
+              ---
+              # ClusterRoleBinding for the above clusterrole to the controller manager SA
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: api-extension-clusterrolebinding
+              subjects:
+                - kind: ServiceAccount
+                  name: api-extension-controller-manager
+                  namespace: {{ .Release.Namespace }}
+              roleRef:
+                kind: ClusterRole
+                name: api-extension-clusterrole
+                apiGroup: rbac.authorization.k8s.io
+              ---
+              # Leader election Role (namespace-scoped) for configmaps, leases and events
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: Role
+              metadata:
+                name: api-extension-leader-election-role
+                namespace: {{ .Release.Namespace }}
+              rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  verbs:
+                  - get
+                  - list
+                  - watch
+                  - create
+                  - update
+                  - patch
+                  - delete
+                - apiGroups:
+                  - coordination.k8s.io
+                  resources:
+                  - leases
+                  verbs:
+                  - get
+                  - list
+                  - watch
+                  - create
+                  - update
+                  - patch
+                  - delete
+                - apiGroups:
+                  - ""
+                  resources:
+                  - events
+                  verbs:
+                  - create
+                  - patch
+              ---
+              # RoleBinding to bind leader election Role to the controller manager SA
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: RoleBinding
+              metadata:
+                name: api-extension-leader-election-rolebinding
+                namespace: {{ .Release.Namespace }}
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: Role
+                name: api-extension-leader-election-role
+              subjects:
+              - kind: ServiceAccount
+                name: api-extension-controller-manager
+                namespace: {{ .Release.Namespace }}
+              ---
+              # Manager ClusterRole for pods get/list/watch
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: api-extension-manager-role
+              rules:
+              - apiGroups:
+                - ""
+                resources:
+                - pods
+                verbs:
+                - get
+                - list
+                - watch
+              ---
+              # ClusterRoleBinding for manager role
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: api-extension-manager-rolebinding
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: api-extension-manager-role
+              subjects:
+              - kind: ServiceAccount
+                name: api-extension-controller-manager
+                namespace: {{ .Release.Namespace }}
+              ---
+              # Metrics auth ClusterRole for tokenreviews and subjectaccessreviews
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRole
+              metadata:
+                name: api-extension-metrics-auth-role
+              rules:
+              - apiGroups:
+                - authentication.k8s.io
+                resources:
+                - tokenreviews
+                verbs:
+                - create
+              - apiGroups:
+                - authorization.k8s.io
+                resources:
+                - subjectaccessreviews
+                verbs:
+                - create
+              ---
+              # ClusterRoleBinding for metrics auth role
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: api-extension-metrics-auth-rolebinding
+              roleRef:
+                apiGroup: rbac.authorization.k8s.io
+                kind: ClusterRole
+                name: api-extension-metrics-auth-role
+              subjects:
+              - kind: ServiceAccount
+                name: api-extension-controller-manager
+                namespace: {{ .Release.Namespace }}
+              ---
+              apiVersion: apiregistration.k8s.io/v1
+              kind: APIService
+              metadata:
+                name: v1.apiserver.api-extension.harikube.info
+              spec:
+                group: apiserver.api-extension.harikube.info
+                version: v1
+                insecureSkipTLSVerify: true
+                groupPriorityMinimum: 1000
+                versionPriority: 15
+                service:
+                  name: api-extension-v1-api-extension
+                  namespace: {{ .Release.Namespace }}
+                caBundle: ""
+              EOF
+
+              # Build kubeconfig for the api-extension ServiceAccount and store it as a Secret
+              NAMESPACE="{{ .Release.Namespace }}"
+
+              SERVER=$(kubectl --kubeconfig="$KUBECONFIG" config view --raw -o jsonpath='{.clusters[0].cluster.server}')
+              CA_DATA=$(kubectl --kubeconfig="$KUBECONFIG" config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+
+              get_sa_token() {
+                local ns="$1"; local sa="$2"
+                # Prefer TokenRequest (kubectl create token)
+                if token=$(kubectl --kubeconfig="$KUBECONFIG" create token "$sa" -n "$ns" 2>/dev/null); then
+                  echo "$token"
+                  return 0
+                fi
+                # Fallback: wait for secret of type kubernetes.io/service-account-token
+                for i in $(seq 1 30); do
+                  secret=$(kubectl --kubeconfig="$KUBECONFIG" -n "$ns" get secret -o jsonpath='{range .items[*]}{.metadata.name}:{.type}\n{end}' 2>/dev/null | awk -F: '/kubernetes.io\/service-account-token/{print $1; exit}') || true
+                  if [ -n "$secret" ]; then
+                    token_b64=$(kubectl --kubeconfig="$KUBECONFIG" -n "$ns" get secret "$secret" -o jsonpath='{.data.token}' 2>/dev/null || true)
+                    if [ -n "$token_b64" ]; then
+                      echo "$(echo "$token_b64" | base64 -d)"
+                      return 0
+                    fi
+                  fi
+                  sleep 2
+                done
+                return 1
+              }
+
+              create_kubeconfig_secret() {
+                local sa="$1"; local secret_name="$2"
+                echo "Creating kubeconfig for ServiceAccount $sa -> Secret $secret_name"
+                tok=$(get_sa_token "$NAMESPACE" "$sa") || { echo "failed to get token for $sa"; return 1; }
+
+                tmpkf="/tmp/kubeconfig-${secret_name}"
+                cat > "$tmpkf" <<KCFG
+              apiVersion: v1
+              kind: Config
+              clusters:
+              - name: vcluster
+                cluster:
+                  server: ${SERVER}
+                  certificate-authority-data: ${CA_DATA}
+              contexts:
+              - name: vcluster
+                context:
+                  cluster: vcluster
+                  user: ${sa}
+              current-context: vcluster
+              users:
+              - name: ${sa}
+                user:
+                  token: ${tok}
+              KCFG
+
+                # apply as opaque secret with key 'config'
+                kubectl --kubeconfig="$KUBECONFIG" -n "$NAMESPACE" create secret generic "$secret_name" --from-file=config="$tmpkf" --dry-run=client -o yaml | kubectl --kubeconfig="$KUBECONFIG" -n "$NAMESPACE" apply -f - >/dev/null
+                echo "applied secret $secret_name in $NAMESPACE"
+              }
+
+              # create secret for api-extension only
+              create_kubeconfig_secret api-extension-controller-manager vc-api-extension
+
+          volumeMounts:
+            - name: kubeconfig
+              mountPath: /kubeconfig
+              readOnly: true
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: vc-harikube
+            items:
+              - key: config
+                path: config
+{{- end }}

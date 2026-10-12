@@ -1,0 +1,158 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: api-server
+spec:
+  namespace: chainsaw-api-server-test
+  timeouts:
+    exec: 2m
+  steps:
+  - name: Pod direct /readyz check
+    try:
+    - script:
+        content: |
+          set -euo pipefail
+          # Select a pod directly (avoid service harikube-api-server-svc) by label
+          POD=$(kubectl -n harikube get pods -l app.kubernetes.io/component=harikube-api-server -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$POD" ]; then
+            echo "no api-server pod found in namespace harikube with label app.kubernetes.io/component=harikube-api-server" >&2
+            kubectl -n harikube get pods -o wide >&2 || true
+            exit 1
+          fi
+
+          # Forward the apiServer pod port 8443 to a local ephemeral port and curl /readyz
+          LOCAL_PORT=18443
+          SAN_HOST=harikube-api-server-svc
+          kubectl -n harikube port-forward "pod/$POD" ${LOCAL_PORT}:8443 >/tmp/port-forward.log 2>&1 &
+          PF_PID=$!
+          CA_FILE="$(mktemp)"
+          trap 'rm -f "$CA_FILE"; kill $PF_PID 2>/dev/null || true' EXIT
+
+          # Extract API server CA from the harikube secret and write to a temp file
+          if kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.ca\.crt}' 2>/dev/null | grep -q .; then
+            kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.ca\.crt}' | base64 -d >"$CA_FILE"
+          elif kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.tls\.crt}' 2>/dev/null | grep -q .; then
+            kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.tls\.crt}' | base64 -d >"$CA_FILE"
+          else
+            echo "failed to extract api-server CA from secret harikube-api-server-crt" >&2
+            kill $PF_PID || true
+            exit 1
+          fi
+
+          # Wait for the local port to respond with an HTTP 2xx for /readyz
+          for i in $(seq 1 15); do
+            if curl --noproxy "${SAN_HOST}" --cacert "$CA_FILE" --resolve "${SAN_HOST}:${LOCAL_PORT}:127.0.0.1" -s -o /dev/null -w '%{http_code}' "https://${SAN_HOST}:${LOCAL_PORT}/readyz" | grep -q '^2'; then
+              kill $PF_PID || true
+              trap - EXIT
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "api-server /readyz did not return 2xx; port-forward log:" >&2
+          tail -n +1 /tmp/port-forward.log >&2 || true
+          kill $PF_PID || true
+          exit 1
+
+  - name: ConfigMap create and existence check
+    try:
+    - script:
+        content: |
+          set -euo pipefail
+
+          # Select the api-server pod directly (avoid service) by label
+          POD=$(kubectl -n harikube get pods -l app.kubernetes.io/component=harikube-api-server -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$POD" ]; then
+            echo "no api-server pod found in namespace harikube with label app.kubernetes.io/component=harikube-api-server" >&2
+            kubectl -n harikube get pods -o wide >&2 || true
+            exit 1
+          fi
+
+          # Forward the apiServer pod port 8443 to a local port
+          LOCAL_PORT=18443
+          SAN_HOST=harikube-api-server-svc
+          kubectl -n harikube port-forward "pod/$POD" ${LOCAL_PORT}:8443 >/tmp/port-forward-cm.log 2>&1 &
+          PF_PID=$!
+          CA_FILE="$(mktemp)"
+          trap 'rm -f "$CA_FILE"; kill $PF_PID 2>/dev/null || true' EXIT
+
+          # Extract API server CA from the harikube secret and write to a temp file
+          if kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.ca\.crt}' 2>/dev/null | grep -q .; then
+            kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.ca\.crt}' | base64 -d >"$CA_FILE"
+          elif kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.tls\.crt}' 2>/dev/null | grep -q .; then
+            kubectl -n harikube get secret harikube-api-server-crt -o jsonpath='{.data.tls\.crt}' | base64 -d >"$CA_FILE"
+          else
+            echo "failed to extract api-server CA from secret harikube-api-server-crt" >&2
+            kill $PF_PID || true
+            exit 1
+          fi
+
+          # Wait for the local port to respond with an HTTP 2xx for /readyz
+          for i in $(seq 1 15); do
+            if curl --noproxy "${SAN_HOST}" --cacert "$CA_FILE" --resolve "${SAN_HOST}:${LOCAL_PORT}:127.0.0.1" -s -o /dev/null -w '%{http_code}' "https://${SAN_HOST}:${LOCAL_PORT}/readyz" | grep -q '^2'; then
+              break
+            fi
+            sleep 1
+          done
+
+          # Create the ConfigMap using a kubeconfig extracted from vcluster secret with client credentials,
+          # but override the server to point to the forwarded endpoint and set tls-server-name to SAN_HOST.
+          TMP_KUBECONFIG="$(mktemp)"
+          # Extract kubeconfig from the vcluster secret (vc-harikube) into a temp file
+          if kubectl -n harikube get secret vc-harikube -o jsonpath='{.data.kubeconfig}' 2>/dev/null | grep -q .; then
+            kubectl -n harikube get secret vc-harikube -o jsonpath='{.data.kubeconfig}' | base64 -d >"$TMP_KUBECONFIG"
+          elif kubectl -n harikube get secret vc-harikube -o jsonpath='{.data.config}' 2>/dev/null | grep -q .; then
+            kubectl -n harikube get secret vc-harikube -o jsonpath='{.data.config}' | base64 -d >"$TMP_KUBECONFIG"
+          else
+            echo "failed to extract kubeconfig from secret vc-harikube" >&2
+            kill $PF_PID || true
+            exit 1
+          fi
+
+          # Override the cluster.server to point at the forwarded port and set tls-server-name while preserving embedded credentials
+          # Update cluster server and tls-server-name in the temp kubeconfig using kubectl config
+          CURRENT_CONTEXT=$(KUBECONFIG="$TMP_KUBECONFIG" kubectl config current-context 2>/dev/null || true)
+          if [ -n "$CURRENT_CONTEXT" ]; then
+            CLUSTER_NAME=$(KUBECONFIG="$TMP_KUBECONFIG" kubectl config view -o jsonpath="{.contexts[?(@.name==\"$CURRENT_CONTEXT\")].context.cluster}")
+          else
+            CLUSTER_NAME=$(KUBECONFIG="$TMP_KUBECONFIG" kubectl config view -o jsonpath='{.clusters[0].name}')
+          fi
+          if [ -z "$CLUSTER_NAME" ]; then
+            echo "failed to determine cluster name in tmp kubeconfig" >&2
+            rm -f "$TMP_KUBECONFIG"
+            kill $PF_PID || true
+            exit 1
+          fi
+          KUBECONFIG="$TMP_KUBECONFIG" kubectl config set-cluster "$CLUSTER_NAME" --server="https://127.0.0.1:${LOCAL_PORT}" --tls-server-name="${SAN_HOST}" --certificate-authority="$CA_FILE"
+
+
+          # Ensure the test namespace exists in the vcluster before applying the ConfigMap
+          KUBECONFIG="$TMP_KUBECONFIG" kubectl get namespace chainsaw-api-server-test >/dev/null 2>&1 || \
+            KUBECONFIG="$TMP_KUBECONFIG" kubectl create namespace chainsaw-api-server-test
+
+          # Create the ConfigMap using the modified kubeconfig
+          KUBECONFIG="$TMP_KUBECONFIG" kubectl -n chainsaw-api-server-test apply -f - <<'EOF'
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: chainsaw-configmap-test
+            namespace: chainsaw-api-server-test
+          data:
+            hello: world
+          EOF
+
+          # Retrieve the ConfigMap via the forwarded endpoint to verify existence and content
+          KUBECONFIG="$TMP_KUBECONFIG" kubectl -n chainsaw-api-server-test get configmap chainsaw-configmap-test -o yaml >/tmp/chainsaw-configmap-test.yaml
+
+          if ! grep -q "hello: world" /tmp/chainsaw-configmap-test.yaml; then
+            echo "ConfigMap content verification failed via forwarded api-server" >&2
+            cat /tmp/chainsaw-configmap-test.yaml >&2 || true
+            rm -f "$TMP_KUBECONFIG"
+            kill $PF_PID || true
+            exit 1
+          fi
+
+          # Clean up
+          rm -f "$TMP_KUBECONFIG"
+          kill $PF_PID || true
+          trap - EXIT

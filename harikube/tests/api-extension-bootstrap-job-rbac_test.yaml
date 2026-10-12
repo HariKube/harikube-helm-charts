@@ -1,0 +1,60 @@
+suite: api-extension Bootstrap Job RBAC parity
+
+# Unit test: ensure the rendered api-extension bootstrap Job includes RBAC parity markers
+# (TDD-style: this test asserts the inline bootstrap script contains the expected RBAC objects/rules)
+
+templates:
+  - api-extension-bootstrap-job.yaml
+
+tests:
+  - it: should render a Job with api-extension RBAC parity markers in the inline script when enabled
+    templates:
+      - api-extension-bootstrap-job.yaml
+    set:
+      apiExtension:
+        create: true
+    release:
+      name: my-release
+      namespace: my-namespace
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: kind
+          value: Job
+      - equal:
+          path: metadata.name
+          value: my-release-api-extension-bootstrap-job
+      - equal:
+          path: metadata.namespace
+          value: my-namespace
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "api-extension-leader-election-role"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "api-extension-leader-election-rolebinding"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "api-extension-manager-role"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "api-extension-manager-rolebinding"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "api-extension-metrics-auth-role"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "api-extension-metrics-auth-rolebinding"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "tokenreviews"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "subjectaccessreviews"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "pods"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "leases"

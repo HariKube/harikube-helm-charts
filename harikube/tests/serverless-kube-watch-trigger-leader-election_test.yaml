@@ -25,7 +25,15 @@ tests:
           value: serverless-kube-watch-trigger-controller-manager
       - contains:
           path: spec.template.spec.containers[0].args
-          content: "--leader-elect"
+          content: "--enable-leader-election"
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
           count: 1
 
   - it: should render Deployment with leader-election disabled when leaderElection enabled is false
@@ -44,7 +52,15 @@ tests:
           value: Deployment
       - contains:
           path: spec.template.spec.containers[0].args
-          content: "--leader-elect=false"
+          content: "--enable-leader-election=false"
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
           count: 1
 
   - it: should not render scaling MutatingAdmissionPolicy when leaderElection enabled (true)
@@ -69,10 +85,32 @@ tests:
           enabled: false
     asserts:
       - hasDocuments:
-          count: 1
-      - equal:
+          count: 2
+      - documentIndex: 0
+        equal:
           path: kind
           value: MutatingAdmissionPolicy
-      - equal:
+      - documentIndex: 0
+        equal:
           path: metadata.name
-          value: scaling-configmap-labeler
+          value: trigger-distribution-labeler
+      - documentIndex: 0
+        equal:
+          path: spec.mutations[0].patchType
+          value: ApplyConfiguration
+      - documentIndex: 0
+        matchRegex:
+          path: spec.mutations[0].applyConfiguration.expression
+          pattern: "Object\\{metadata: Object\\.metadata\\{labels:"
+      - documentIndex: 1
+        equal:
+          path: kind
+          value: MutatingAdmissionPolicyBinding
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: trigger-distribution-labeler
+      - documentIndex: 1
+        equal:
+          path: spec.policyName
+          value: trigger-distribution-labeler

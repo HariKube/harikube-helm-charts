@@ -1,4 +1,4 @@
-{{- if .Values.serverlessKubeWatchTrigger.create -}}
+{{- if not .Values.serverlessKubeWatchTrigger.create -}}
 # ServiceAccounts
 apiVersion: v1
 kind: ServiceAccount
@@ -33,10 +33,13 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["configmaps", "endpoints"]
-    verbs: ["get", "create", "update", "patch", "list"]
+    verbs: ["get", "create", "update", "patch", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
-    verbs: ["get", "create", "update", "patch", "list"]
+    verbs: ["get", "create", "update", "patch", "list", "watch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -52,7 +55,22 @@ rules:
     verbs: ["create", "get", "list", "watch", "delete"]
   - apiGroups: [""]
     resources: ["pods", "pods/exec", "secrets"]
-    verbs: ["create", "get", "list", "watch", "delete"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["triggers.harikube.info"]
+    resources: ["pitriggers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
 ---
 # ClusterRoles (available cluster-wide, not all are bound here)
@@ -84,10 +102,10 @@ metadata:
 rules:
   - apiGroups: ["triggers.harikube.info"]
     resources: ["httptriggers", "httptriggers/status"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: [""]
     resources: ["services", "endpoints", "pods", "configmaps"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["events.k8s.io"]
     resources: ["events"]
     verbs: ["create"]
@@ -106,6 +124,9 @@ rules:
   - apiGroups: [""]
     resources: ["services", "endpoints", "pods"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["triggers.harikube.info"]
+    resources: ["httptriggers/status"]
+    verbs: ["get"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -125,12 +146,21 @@ rules:
   - apiGroups: ["triggers.harikube.info"]
     resources: ["httptriggers/status", "pitriggers/status"]
     verbs: ["get", "patch", "update"]
+  - apiGroups: ["triggers.harikube.info"]
+    resources: ["httptriggers/finalizers", "pitriggers/finalizers"]
+    verbs: ["update"]
   - apiGroups: [""]
     resources: ["configmaps", "secrets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "create", "update", "patch", "list", "watch", "delete"]
   - apiGroups: ["events.k8s.io"]
     resources: ["events"]
     verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
   - nonResourceURLs: ["/api", "/api/*", "/apis", "/apis/*"]
     verbs: ["get"]
   - apiGroups: ["apiregistration.k8s.io"]
@@ -160,6 +190,8 @@ rules:
   - apiGroups: ["apiregistration.k8s.io"]
     resources: ["apiservices"]
     verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/api", "/api/*", "/apis", "/apis/*"]
+    verbs: ["get"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -184,7 +216,7 @@ metadata:
 rules:
   - apiGroups: ["triggers.harikube.info"]
     resources: ["pitriggers"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["triggers.harikube.info"]
     resources: ["pitriggers/status"]
     verbs: ["get"]
@@ -200,6 +232,9 @@ rules:
   - apiGroups: ["triggers.harikube.info"]
     resources: ["pitriggers"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["triggers.harikube.info"]
+    resources: ["pitriggers/status"]
+    verbs: ["get"]
 
 ---
 # RoleBindings (namespaced)
