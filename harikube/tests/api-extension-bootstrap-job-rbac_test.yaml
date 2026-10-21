@@ -58,3 +58,21 @@ tests:
       - matchRegex:
           path: spec.template.spec.containers[0].args[0]
           pattern: "leases"
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: alpine/kubectl:1.36.2
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "v1-api-extension-crt"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "ca.crt"
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: 'NAMESPACE="[^"]+"[\s\S]*CRT_B64=\$\(kubectl[^)]*get secret v1-api-extension-crt' 
+      - matchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: 'caBundle:\s*\$\{CRT_B64\}'
+      - notMatchRegex:
+          path: spec.template.spec.containers[0].args[0]
+          pattern: "insecureSkipTLSVerify: true"

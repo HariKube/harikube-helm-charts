@@ -24,9 +24,6 @@ define SETS
 --set controllerManager.create=true \
 --set controllerManager.monitoring.create=true \
 --set controllerManager.networkPolicy.create=true \
---set serverlessKubeWatchTrigger.create=true \
---set serverlessKubeWatchTrigger.leaderElection.enabled=false \
---set apiExtension.create=true \
 --set controllerManagerMutatingAdmissionPolicy.create=true \
 --set certManagerIntegration.create=$(CERT_MANAGER) \
 --set vcluster.exportKubeConfig.server=https://harikube.$(NAMESPACE):443
@@ -43,25 +40,33 @@ define EE_SETS
 endef
 SETS += $(EE_SETS)
 endif
-	
+
+define SETS_EXT
+--create-namespace \
+--namespace $(NAMESPACE) \
+-f ./harikube/values-extensions.yaml
+endef
+
 .PHONY: lint
 lint:
 	$(HELM) lint ./harikube
 	$(YAMLLINT) --strict --format github <(make render)
 	$(HELM) template harikube ./harikube | kubeconform -summary -verbose -ignore-missing-schemas
+	$(HELM) template harikube ./harikube -f ./harikube/values-extensions.yaml | kubeconform -summary -verbose -ignore-missing-schemas
 
 .PHONY: render
 render:
 	@$(HELM) template harikube ./harikube $(SETS) --debug
+	@$(HELM) template harikube ./harikube $(SETS_EXT) --debug
 
 .PHONY: test
 test:
-	helm plugin install https://github.com/helm-unittest/helm-unittest ||:
-	helm unittest --debug --with-subchart=false ./harikube
+	$(HELM) plugin install https://github.com/helm-unittest/helm-unittest ||:
+	$(HELM) unittest --debug --with-subchart=false ./harikube
 
 .PHONY: package
 package:
-	helm package ./harikube
+	$(HELM) package ./harikube
 
 .PHONY: setup-test
 setup-test: cleanup-test
@@ -82,6 +87,7 @@ test-integration: setup-test _test-integration
 
 _test-integration:
 	$(HELM) install harikube ./harikube --dry-run $(SETS) --debug
+	$(HELM) install harikube-extensions ./harikube --dry-run $(SETS_EXT) --debug
 
 .PHONY: test-e2e
 test-e2e: setup-test _setup-e2e _test-e2e
@@ -93,31 +99,35 @@ _setup-e2e:
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-apiserver=enabled --overwrite
 	$(KUBECTL) label namespace $(NAMESPACE) harikube.info/$(NAMESPACE)-controllermanager=enabled --overwrite
 
+ifeq ($(MODE),ee)
 	$(KUBECTL) apply -f operator-crd.yaml
-	$(KUBECTL) apply -f serverless-kube-watch-trigger-crd.yaml
-	$(KUBECTL) apply -f api-extension-crd.yaml
+endif
 
 	$(HELM) install harikube ./harikube $(SETS) --debug
+
 ifeq ($(MODE),ee)
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
 endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-middleware-deploy --timeout=2m
-	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
-	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 statefulset/harikube --timeout=5m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-api-server-deploy --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-controller-manager-deploy --timeout=5m
+
+	$(VCLUSTER) connect harikube
+	$(KUBECTL) apply -f serverless-kube-watch-trigger-crd.yaml
+	$(KUBECTL) apply -f api-extension-crd.yaml
+	$(HELM) install harikube-extensions ./harikube $(SETS_EXT) --debug
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
+	$(VCLUSTER) disconnect
 
 _test-e2e:
 ifeq ($(MODE),ee)
 	$(CHAINSAW) test --test-dir test/integration/00-topology-config
 endif
-	$(CHAINSAW) test test/integration/00-componenets/
-
 	$(VCLUSTER) connect harikube
-	$(CHAINSAW) test --test-dir test/integration/01-shirt
+	$(CHAINSAW) test test/integration/00-componenets
+	$(CHAINSAW) test test/integration/01-shirt
 	$(VCLUSTER) disconnect
 
 .PHONY: cleanup-test

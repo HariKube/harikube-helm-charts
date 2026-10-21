@@ -102,7 +102,7 @@ Open-Source edition is designed to interface with a single backend database inst
 
 ```bash
 helm install harikube oci://quay.io/harikube/harikube \
-    --version ${{ steps.extract_version.outputs.version }} \
+    --version 0.16.3 \
     --create-namespace \
     --namespace harikube \
     --set vcluster.exportKubeConfig.server=https://harikube.harikube:443
@@ -111,65 +111,49 @@ kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/
 
 > If you change namespace, please `--set vcluster.exportKubeConfig.server=https://harikube.<NAMESPACE>:443`
 
-You can integrate services with cert-manager.
+- You can integrate services with cert-manager.
 
 ```bash
 --set certManagerIntegration.create=true
 ```
 
-You can enable network policies. You have to create namespace manually, label the namespace and skip `--create-namespace` flag.
+- You can enable network policies. You have to create namespace manually, label the namespace and skip `--create-namespace` flag.
 
 ```bash
 --set middleware.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-middleware=enabled --overwrite
 ```
 
-You can enable ServiceMonitors for middleware.
+- You can enable ServiceMonitors for middleware.
 
 ```bash
 --set middleware.monitoring.create=true
 ```
 
-You can enable the controllerManagerMutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
+- You can enable the controllerManagerMutatingAdmissionPolicy to label non core resources with skip-controller-manager-metadata-caching.
 
 ```bash
 --set controllerManagerMutatingAdmissionPolicy.create=true
 ```
 
-You can enable a scalable contorl plane extension.
+- You can enable a scalable contorl plane extension.
 
 ```bash
 --set apiServer.create=true
 --set controllerManager.create=true # By default all controllers are disabled, enable controllers you want to run.
 ```
 
-You can enable network policies for control plane.
+- You can enable network policies for control plane.
 
 ```bash
 --set apiServer.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-apiserver=enabled --overwrite
 --set controllerManager.networkPolicy.create=true # kubectl label namespace harikube harikube.info/<NAMESPACE>-controllermanager=enabled --overwrite
 ```
 
-You can enable ServiceMonitors per service.
+- You can enable ServiceMonitors per service.
 
 ```bash
 --set apiServer.monitoring.create=true
 --set controllerManager.monitoring.create=true
-```
-
-You can enable the serverless kube watch trigger controller. It is deployed into the same namespace as the rest of the HariKube release.
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/main/serverless-kube-watch-trigger-crd.yaml
-helm upgrade --install harikube oci://quay.io/harikube/harikube \
-    --set serverlessKubeWatchTrigger.create=true
-```
-
-You can enable the api-extension controller. It is deployed into the same namespace as the rest of the HariKube release.
-
-```bash
-kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/main/api-extension-crd.yaml
-helm upgrade --install harikube oci://quay.io/harikube/harikube \
-    --set apiExtension.create=true
 ```
 
 #### Enterprise Editioin
@@ -177,6 +161,31 @@ helm upgrade --install harikube oci://quay.io/harikube/harikube \
 - Apply Operator's `Custom Resource Definition` via: `kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/operator-crd.yaml`
 - Change endpoint to: `--set middleware.endPoint.url="multi://sqlite:///db/main.db?_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate&_stmt_cache_size=20&cache=shared"`
 - Set `enterprise.key`, `enterprise.user` and `enterprise.password`, then set `operator.create=true` and the chart will deploy licensed edition to the target cluster.
+
+#### Extensions
+
+Available extensions:
+
+- API Extension: Aggregation API for advanced data featuress: https://github.com/HariKube/api-extension
+- Kube Watch Trigger: Declarative serverless function and AI agent trigger:  https://github.com/HariKube/serverless-kube-watch-trigger
+
+```bash
+vcluster connect harikube
+
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/api-extension-crd.yaml
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/serverless-kube-watch-trigger-crd.yaml
+
+helm install harikube oci://quay.io/harikube/harikube \
+    --version 0.16.3 \
+    --create-namespace \
+    --namespace harikube \
+    -f <(curl -s https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/harikube/values-extensions.yaml)
+
+kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
+kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
+
+vcluster disconnect
+```
 
 ## vCluster connection
 

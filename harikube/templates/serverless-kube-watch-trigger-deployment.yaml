@@ -31,7 +31,6 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       serviceAccountName: {{ include "harikube.serverlessKubeWatchTrigger.serviceAccountName" . }}
-      automountServiceAccountToken: false
       {{- with .Values.serverlessKubeWatchTrigger.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
@@ -61,11 +60,9 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: KUBECONFIG
-          value: /etc/kubernetes/kubeconfig/config
         {{- with .Values.serverlessKubeWatchTrigger.volumeMounts }}
         volumeMounts:
-{{- toYaml . | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
         {{- end }}
         {{- $args := list }}
         {{- with .Values.serverlessKubeWatchTrigger.args }}
@@ -81,7 +78,7 @@ spec:
           {{- $args = append $args "--enable-leader-election=false" }}
         {{- end }}
         args:
-{{- toYaml $args | nindent 10 }}
+          {{- toYaml $args | nindent 10 }}
         livenessProbe:
           {{- toYaml .Values.serverlessKubeWatchTrigger.livenessProbe | nindent 10 }}
         readinessProbe:

@@ -1,0 +1,189 @@
+# Default values for harikube extensions.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+certManagerIntegration:
+  create: false
+
+mutatingAdmissionPolicy:
+  apiVersion: v1
+
+# DO NOT ENABLE MIDDLEWARE HERE
+middleware:
+  create: false
+
+# DO NOT ENABLE VCLUSTER HERE
+controlPlane:
+  create: false
+
+serverlessKubeWatchTrigger:
+  # Specifies whether the serverless-kube-watch-trigger should be created
+  create: true
+  replicaCount: 1
+  image:
+    repository: quay.io/harikube/serverless-kube-watch-trigger
+    pullPolicy: IfNotPresent
+    tag: rc-v1.0.0-9
+  args:
+  - --leader-elect
+  - --health-probe-bind-address=:8081
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext:
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/arch
+            operator: In
+            values:
+            - arm64
+            - amd64
+            - s390x
+            - ppc64le
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+  leaderElection:
+    enabled: true
+
+apiExtension:
+  # Specifies whether the api-extension should be created
+  create: true
+  replicaCount: 1
+  coreResources: ',apps,batch,storage.k8s.io,coordination.k8s.io,autoscaling,policy,rbac.authorization.k8s.io,networking.k8s.io,certificates.k8s.io,admissionregistration.k8s.io,apiextensions.k8s.io,scheduling.k8s.io,node.k8s.io,discovery.k8s.io,flowcontrol.apiserver.k8s.io,events.k8s.io,authentication.k8s.io,authorization.k8s.io'
+  image:
+    repository: quay.io/harikube/api-extension
+    pullPolicy: IfNotPresent
+    tag: rc-v1.0.0-4
+  args:
+  - --metrics-bind-address=:8443
+  - --leader-elect=false
+  - --health-probe-bind-address=:8081
+  - --harikube-skip-verify=false
+  - --core-resources=$(CORE_RESOURCES)
+  - --apiserver-port=:7443
+  - --apiserver-cert-file=/tmp/k8s-apiserver-server/serving-certs/tls.crt
+  - --apiserver-key-file=/tmp/k8s-apiserver-server/serving-certs/tls.key
+  - --harikube-urls=$(HARIKUBE_URLS)
+  - --decision-maker-url=$(DECISION_MAKER_URL)
+  - --decision-maker-timeout=$(DECISION_MAKER_TIMEOUT)
+  - --harikube-cert-file=/tmp/harikube-middleware-crt/tls.crt
+  - --harikube-key-file=/tmp/harikube-middleware-crt/tls.key
+  - --harikube-ca-file=/tmp/harikube-middleware-crt/ca.crt
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext:
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  service:
+    metrics:
+      type: ClusterIP
+      port: 8443
+    api:
+      type: ClusterIP
+      port: 443
+      targetPort: 7443
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/arch
+            operator: In
+            values:
+            - arm64
+            - amd64
+            - s390x
+            - ppc64le
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+  volumes:
+  - name: api-extension-decision-maker-cache
+    persistentVolumeClaim:
+      claimName: api-extension-decision-maker-cache
+  volumeMounts:
+  - name: api-extension-decision-maker-cache
+    mountPath: /var/cache/laya
+  serviceAccount:
+    annotations: {}
