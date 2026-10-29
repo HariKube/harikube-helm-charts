@@ -30,7 +30,7 @@ spec:
         {{- end }}
     spec:
       terminationGracePeriodSeconds: 10
-      serviceAccountName: {{ include "harikube.serverlessKubeWatchTrigger.serviceAccountName" . }}
+      serviceAccountName: serverless-kube-watch-trigger-controller-manager
       {{- with .Values.serverlessKubeWatchTrigger.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

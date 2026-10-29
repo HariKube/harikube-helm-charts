@@ -281,20 +281,4 @@ data:
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    {{- include "harikube.labels" . | nindent 4 }}
-    app.kubernetes.io/name: api-extension
-    control-plane: controller-manager
-  name: api-extension-decision-maker-cache
-  namespace: {{ .Release.Namespace }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
 {{- end }}

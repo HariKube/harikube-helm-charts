@@ -1,0 +1,21 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: tests
+spec:
+  namespace: chainsaw-pod-test
+  timeouts:
+    assert: 1m
+  steps:
+  - name: Count test
+    try:
+    - script:
+        content: kubectl create configmap -n chainsaw-pod-test all-namespace --from-literal="count=$(kubectl get counts --field-selector=apiVersion=storage.k8s.io/v1,kind=StorageClass -o jsonpath='{.items[0].spec.count}')"
+    - assert:
+        resource:
+          apiVersion: v1
+          data:
+            count: "1"
+          kind: ConfigMap
+          metadata:
+            name: all-namespace

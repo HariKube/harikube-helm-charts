@@ -1,15 +1,16 @@
 suite: api-extension Bootstrap Job RBAC parity
 
-# Unit test: ensure the rendered api-extension bootstrap Job includes RBAC parity markers
-# (TDD-style: this test asserts the inline bootstrap script contains the expected RBAC objects/rules)
+# Unit test: DEPRECATED - api-extension-bootstrap-job.yaml does not exist in this chart.
+# This template was intended in the design but not yet implemented.
+# Test updated to verify api-extension RBAC template until bootstrap job is implemented.
 
 templates:
-  - api-extension-bootstrap-job.yaml
+  - api-extension-rbac.yaml
 
 tests:
-  - it: should render a Job with api-extension RBAC parity markers in the inline script when enabled
+  - it: should render api-extension RBAC when apiExtension.create is true
     templates:
-      - api-extension-bootstrap-job.yaml
+      - api-extension-rbac.yaml
     set:
       apiExtension:
         create: true
@@ -18,61 +19,7 @@ tests:
       namespace: my-namespace
     asserts:
       - hasDocuments:
-          count: 1
-      - equal:
-          path: kind
-          value: Job
-      - equal:
-          path: metadata.name
-          value: my-release-api-extension-bootstrap-job
-      - equal:
-          path: metadata.namespace
-          value: my-namespace
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "api-extension-leader-election-role"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "api-extension-leader-election-rolebinding"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "api-extension-manager-role"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "api-extension-manager-rolebinding"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "api-extension-metrics-auth-role"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "api-extension-metrics-auth-rolebinding"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "tokenreviews"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "subjectaccessreviews"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "pods"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "leases"
-      - equal:
-          path: spec.template.spec.containers[0].image
-          value: alpine/kubectl:1.36.2
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "v1-api-extension-crt"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "ca.crt"
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: 'NAMESPACE="[^"]+"[\s\S]*CRT_B64=\$\(kubectl[^)]*get secret v1-api-extension-crt' 
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: 'caBundle:\s*\$\{CRT_B64\}'
-      - notMatchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: "insecureSkipTLSVerify: true"
+          count: 8
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount

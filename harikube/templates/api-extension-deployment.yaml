@@ -33,6 +33,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       serviceAccountName: api-extension-controller-manager
+      dnsPolicy: ClusterFirst
       {{- with .Values.apiExtension.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
@@ -46,7 +47,13 @@ spec:
         {{- toYaml . | nindent 6 }}
       {{- end }}
       securityContext:
-        {{- toYaml .Values.apiExtension.podSecurityContext | nindent 8 }}
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - args:
           {{- toYaml .Values.apiExtension.args | nindent 10 }}
@@ -99,8 +106,24 @@ spec:
           {{- toYaml . | nindent 8 }}
         {{- end }}
       - name: decision-maker
-        image: node:18-alpine
+        image: node:20-bookworm-slim
         imagePullPolicy: IfNotPresent
+        args:
+        - |
+          echo "decision-maker starting with provider=${DECISION_MAKER_PROVIDER}"
+          mkdir -p /tmp/decision-maker "${NPM_CONFIG_CACHE}" "${HOME}"
+          cp /opt/decision-maker/server.mjs /tmp/decision-maker/server.mjs
+          cd /tmp/decision-maker
+          if [ "${DECISION_MAKER_PROVIDER}" = "laya" ]; then
+            echo "installing @receptron/laya into /tmp/decision-maker"
+            npm init -y >/dev/null 2>&1
+            npm install --omit=dev @receptron/laya
+            echo "finished installing @receptron/laya"
+          fi
+          exec node /tmp/decision-maker/server.mjs
+        command:
+        - /bin/sh
+        - -ec
         env:
         - name: DECISION_MAKER_PROVIDER
           valueFrom:
@@ -117,14 +140,59 @@ spec:
             configMapKeyRef:
               name: api-extension-decision-maker
               key: laya-cache
-        - name: DECISION_MAKER_TIMEOUT
+        - name: HOME
+          value: /tmp/decision-maker/home
+        - name: NPM_CONFIG_CACHE
+          value: /tmp/decision-maker/.npm
+        - name: HF_TOKEN
           valueFrom:
-            configMapKeyRef:
-              name: api-extension-decision-maker
-              key: timeout
-        command:
-        - node
-        - /opt/decision-maker/server.mjs
+            secretKeyRef:
+              name: api-extension-decision-maker-secrets
+              key: hf-token
+              optional: true
+        - name: ONNXRUNTIME_EXECUTION_PROVIDERS
+          value: "cpu"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: decision-http
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: decision-http
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        startupProbe:
+          failureThreshold: 90
+          httpGet:
+            path: /healthz
+            port: decision-http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        ports:
+        - containerPort: 8088
+          name: decision-http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 2
+            memory: 4Gi
+          requests:
+            cpu: 250m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
         volumeMounts:
         - name: decision-maker-script
           mountPath: /opt/decision-maker/server.mjs
@@ -143,6 +211,9 @@ spec:
       - name: decision-maker-script
         configMap:
           name: api-extension-decision-maker
+      - name: decision-maker-cache
+        persistentVolumeClaim:
+          claimName: api-extension-decision-maker-cache
       {{- with .Values.apiExtension.volumes }}
         {{- toYaml . | nindent 6 }}
       {{- end }}

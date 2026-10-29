@@ -54,7 +54,7 @@ per secret on first install before the secret exists in the API server.
     {{/* First install: generate once and store in memory */}}
     {{- $ca := genCA (printf "%s-ca" $cn) 3650 -}}
     {{- $altNames := list $cn (printf "%s.%s" $cn $ns) (printf "%s.%s.svc" $cn $ns) (printf "%s.%s.svc.cluster.local" $cn $ns) -}}
-    {{- $cert := genSignedCert $cn nil $altNames 3650 $ca -}}
+    {{- $cert := genSignedCert $cn (list "127.0.0.1" "::1") $altNames 3650 $ca -}}
     {{- $caCert = $ca.Cert | b64enc -}}
     {{- $tlsCert = $cert.Cert | b64enc -}}
     {{- $tlsKey = $cert.Key | b64enc -}}
@@ -66,11 +66,4 @@ per secret on first install before the secret exists in the API server.
 
 {{/* Return cached dict for this specific secretName */}}
 {{- (index $root.Values.tlsCache $secretName) | toYaml -}}
-{{- end -}}
-
-{{/*
-Serverless kube watch trigger service account name
-*/}}
-{{- define "harikube.serverlessKubeWatchTrigger.serviceAccountName" -}}
-serverless-kube-watch-trigger-controller-manager
 {{- end -}}

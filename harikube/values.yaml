@@ -24,6 +24,12 @@ serverlessKubeWatchTrigger:
 # DO NOT ENABLE EXTENSION HERE
 apiExtension:
   create: false
+  pvc:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
   service:
     api:
       port: 1

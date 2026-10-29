@@ -91,7 +91,7 @@ _test-integration:
 
 .PHONY: test-e2e
 test-e2e: setup-test _setup-e2e _test-e2e
-# 	$(MAKE) cleanup-test
+	$(MAKE) cleanup-test
 
 _setup-e2e:
 	$(KUBECTL) create namespace $(NAMESPACE)
@@ -103,7 +103,7 @@ ifeq ($(MODE),ee)
 	$(KUBECTL) apply -f operator-crd.yaml
 endif
 
-	$(HELM) install harikube ./harikube $(SETS) --debug
+	$(HELM) upgrade --install harikube ./harikube $(SETS) --debug
 
 ifeq ($(MODE),ee)
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-operator-deploy --timeout=2m
@@ -114,19 +114,24 @@ endif
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/harikube-controller-manager-deploy --timeout=5m
 
 	$(VCLUSTER) connect harikube
-	$(KUBECTL) apply -f serverless-kube-watch-trigger-crd.yaml
 	$(KUBECTL) apply -f api-extension-crd.yaml
-	$(HELM) install harikube-extensions ./harikube $(SETS_EXT) --debug
+	$(KUBECTL) apply -f serverless-kube-watch-trigger-crd.yaml
+	$(KUBECTL) delete pvc -n $(NAMESPACE) api-extension-decision-maker-cache --ignore-not-found=true
+	$(HELM) upgrade --install harikube-extensions ./harikube $(SETS_EXT) --debug
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
 	$(KUBECTL) wait -n $(NAMESPACE) --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
+	$(KUBECTL) wait --for=condition=Available apiservice/v1.apiserver.api-extension.harikube.info --timeout=5m
 	$(VCLUSTER) disconnect
 
 _test-e2e:
 ifeq ($(MODE),ee)
-	$(CHAINSAW) test --test-dir test/integration/00-topology-config
+	$(CHAINSAW) test test/integration/00-host-cluster
+else
+	$(CHAINSAW) test test/integration/00-host-cluster/api-server
 endif
+	
 	$(VCLUSTER) connect harikube
-	$(CHAINSAW) test test/integration/00-componenets
+	$(CHAINSAW) test test/integration/00-vcluster
 	$(CHAINSAW) test test/integration/01-shirt
 	$(VCLUSTER) disconnect
 

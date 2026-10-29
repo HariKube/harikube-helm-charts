@@ -164,27 +164,73 @@ kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 statefulset/
 
 #### Extensions
 
-Available extensions:
+HariKube provides powerful extensions to enhance your state machine with advanced data features and serverless capabilities.
 
-- API Extension: Aggregation API for advanced data featuress: https://github.com/HariKube/api-extension
-- Kube Watch Trigger: Declarative serverless function and AI agent trigger:  https://github.com/HariKube/serverless-kube-watch-trigger
+##### Available Extensions
+
+**API Extension** ([Repository](https://github.com/HariKube/api-extension))
+- Provides aggregation API for advanced data features and field selectors
+- Enables server-side filtering and complex data queries
+- Integrates with decision-maker for intelligent request handling
+
+**Serverless Kube Watch Trigger** ([Repository](https://github.com/HariKube/serverless-kube-watch-trigger))
+- Declarative serverless function execution triggered by resource changes
+- AI agent integration for intelligent automation
+- Real-time event-driven processing
+- Leader election support for high-availability deployments
+
+##### Installation Steps
+
+**Step 1: Connect to vCluster**
 
 ```bash
 vcluster connect harikube
+```
 
+**Step 2: Apply Custom Resource Definitions**
+
+```bash
+# Apply API Extension CRD 
 kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/api-extension-crd.yaml
-kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/serverless-kube-watch-trigger-crd.yaml
 
+# Apply Serverless Kube Watch Trigger CRD
+kubectl apply -f https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/serverless-kube-watch-trigger-crd.yaml
+```
+
+**Step 3: Deploy Extensions via Helm**
+
+Use the pre-configured values file that enables both extensions with sensible defaults:
+
+```bash
 helm install harikube oci://quay.io/harikube/harikube \
     --version 0.16.3 \
     --create-namespace \
     --namespace harikube \
     -f <(curl -s https://raw.githubusercontent.com/HariKube/harikube-helm-charts/refs/heads/release-v0.16.3/harikube/values-extensions.yaml)
+```
 
+**Key Configuration Options** (from `values-extensions.yaml`):
+
+- **API Extension**:
+  - `apiExtension.create: true` - Enable/disable the extension
+  - `apiExtension.replicaCount: 1` - Number of controller replicas
+
+- **Serverless Kube Watch Trigger**:
+  - `serverlessKubeWatchTrigger.create: true` - Enable/disable the extension
+  - `serverlessKubeWatchTrigger.replicaCount: 1` - Number of controller replicas
+  - `serverlessKubeWatchTrigger.args` - Controller flags:
+    - `--leader-elect` - Enable leader election for HA deployments
+
+**Step 4: Verify Deployment**
+
+Wait for controllers to be ready:
+
+```bash
+# Wait for API Extension controller
 kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/api-extension-controller-manager --timeout=2m
-kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
 
-vcluster disconnect
+# Wait for Serverless Kube Watch Trigger controller
+kubectl wait -n harikube --for=jsonpath='{.status.readyReplicas}'=1 deployment/serverless-kube-watch-trigger-controller-manager --timeout=2m
 ```
 
 ## vCluster connection

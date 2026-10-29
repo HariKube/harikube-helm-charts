@@ -12,6 +12,9 @@ tests:
     set:
       serverlessKubeWatchTrigger:
         create: true
+        image:
+          registry: docker.io
+        replicaCount: 1
         leaderElection:
           enabled: true
     asserts:
@@ -42,6 +45,9 @@ tests:
     set:
       serverlessKubeWatchTrigger:
         create: true
+        image:
+          registry: docker.io
+        replicaCount: 1
         leaderElection:
           enabled: false
     asserts:
@@ -69,6 +75,9 @@ tests:
     set:
       serverlessKubeWatchTrigger:
         create: true
+        image:
+          registry: docker.io
+        replicaCount: 1
         leaderElection:
           enabled: true
     asserts:
@@ -81,6 +90,9 @@ tests:
     set:
       serverlessKubeWatchTrigger:
         create: true
+        image:
+          registry: docker.io
+        replicaCount: 1
         leaderElection:
           enabled: false
     asserts:

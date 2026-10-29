@@ -26,11 +26,18 @@ spec:
   dnsNames:
   - api-extension-v1-api-extension.{{ .Release.Namespace }}.svc
   - api-extension-v1-api-extension.{{ .Release.Namespace }}.svc.cluster.local
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
   issuerRef:
     name: api-extension-v1-api-extension-ca
+    kind: Issuer
   secretName: v1-api-extension-crt
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
 {{- else }}
-{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "v1-api-extension-crt" "cn" "api-extension-v1-api-extension") | fromYaml -}}
+{{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "v1-api-extension-crt" "cn" "api-extension-v1-api-extension") | fromYaml }}
 apiVersion: v1
 kind: Secret
 metadata:

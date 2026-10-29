@@ -1,4 +1,14 @@
-{{- if not .Values.apiExtension.create -}}
+{{- if .Values.apiExtension.create -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    {{- include "harikube.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api-extension
+    control-plane: controller-manager
+  name: api-extension-controller-manager
+  namespace: {{ .Release.Namespace }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:

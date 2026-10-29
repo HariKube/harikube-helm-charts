@@ -1,4 +1,4 @@
-{{- if not .Values.apiExtension.create -}}
+{{- if .Values.apiExtension.create -}}
 {{- $tls := include "harikube.getOrGenTls" (dict "root" . "secretName" "v1-api-extension-crt" "cn" "api-extension-v1-api-extension") | fromYaml -}}
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
@@ -14,8 +14,10 @@ metadata:
   name: v1.apiserver.api-extension.harikube.info
 spec:
   {{- if not .Values.certManagerIntegration.create }}
+  # Use CA from Helm-generated certificate
   caBundle: {{ $tls.caCert }}
   {{- else }}
+  # Cert-manager will inject the CA from the Certificate resource
   caBundle: ""
   {{- end }}
   group: apiserver.api-extension.harikube.info

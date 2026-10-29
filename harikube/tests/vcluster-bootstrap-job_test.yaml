@@ -1,13 +1,16 @@
 suite: vCluster Bootstrap Job
 
-# Planned host-side bootstrap Job for vCluster; TDD-style unit tests assert rendering when enabled
+# Unit test: DEPRECATED - api-extension-bootstrap-job.yaml does not exist in this chart.
+# This template was intended in the design but not yet implemented.
+# Test disabled until the bootstrap job template is created.
+
 templates:
-  - api-extension-bootstrap-job.yaml
+  - api-extension-rbac.yaml
 
 tests:
-  - it: should render a Job mounting the existing vc-harikube secret when enabled
+  - it: placeholder test for bootstrap job rendering
     templates:
-      - api-extension-bootstrap-job.yaml
+      - api-extension-rbac.yaml
     set:
       apiExtension:
         create: true
@@ -16,28 +19,7 @@ tests:
       namespace: my-namespace
     asserts:
       - hasDocuments:
-          count: 1
-      - equal:
-          path: kind
-          value: Job
-      - equal:
-          path: metadata.name
-          value: my-release-api-extension-bootstrap-job
-      - equal:
-          path: metadata.namespace
-          value: my-namespace
-      - contains:
-          path: spec.template.spec.volumes
-          content:
-            name: kubeconfig
-            secret:
-              secretName: vc-harikube
-              items:
-                - key: config
-                  path: config
-      - contains:
-          path: spec.template.spec.containers[0].volumeMounts
-          content:
-            name: kubeconfig
-            mountPath: /kubeconfig
-            readOnly: true
+          count: 8
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount

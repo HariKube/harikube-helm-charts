@@ -16,78 +16,6 @@ middleware:
 controlPlane:
   create: false
 
-serverlessKubeWatchTrigger:
-  # Specifies whether the serverless-kube-watch-trigger should be created
-  create: true
-  replicaCount: 1
-  image:
-    repository: quay.io/harikube/serverless-kube-watch-trigger
-    pullPolicy: IfNotPresent
-    tag: rc-v1.0.0-9
-  args:
-  - --leader-elect
-  - --health-probe-bind-address=:8081
-  podAnnotations: {}
-  podLabels: {}
-  podSecurityContext:
-    fsGroup: 65532
-    fsGroupChangePolicy: OnRootMismatch
-    runAsGroup: 65532
-    runAsNonRoot: true
-    runAsUser: 65532
-    seccompProfile:
-      type: RuntimeDefault
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-      - ALL
-    readOnlyRootFilesystem: true
-    runAsGroup: 65532
-    runAsNonRoot: true
-    runAsUser: 65532
-    seccompProfile:
-      type: RuntimeDefault
-  resources:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 10m
-      memory: 64Mi
-  livenessProbe:
-    httpGet:
-      path: /healthz
-      port: 8081
-    initialDelaySeconds: 15
-    periodSeconds: 20
-  readinessProbe:
-    httpGet:
-      path: /readyz
-      port: 8081
-    initialDelaySeconds: 5
-    periodSeconds: 10
-  nodeSelector: {}
-  tolerations: []
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: kubernetes.io/arch
-            operator: In
-            values:
-            - arm64
-            - amd64
-            - s390x
-            - ppc64le
-          - key: kubernetes.io/os
-            operator: In
-            values:
-            - linux
-  leaderElection:
-    enabled: true
-
 apiExtension:
   # Specifies whether the api-extension should be created
   create: true
@@ -96,7 +24,7 @@ apiExtension:
   image:
     repository: quay.io/harikube/api-extension
     pullPolicy: IfNotPresent
-    tag: rc-v1.0.0-4
+    tag: rc-v1.0.0-5
   args:
   - --metrics-bind-address=:8443
   - --leader-elect=false
@@ -185,5 +113,83 @@ apiExtension:
   volumeMounts:
   - name: api-extension-decision-maker-cache
     mountPath: /var/cache/laya
+  pvc:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
   serviceAccount:
     annotations: {}
+    
+serverlessKubeWatchTrigger:
+  # Specifies whether the serverless-kube-watch-trigger should be created
+  create: true
+  replicaCount: 1
+  image:
+    repository: quay.io/harikube/serverless-kube-watch-trigger
+    pullPolicy: IfNotPresent
+    tag: rc-v1.0.0-11
+  args:
+  - --leader-elect
+  - --health-probe-bind-address=:8081
+  podAnnotations: {}
+  podLabels: {}
+  podSecurityContext:
+    fsGroup: 65532
+    fsGroupChangePolicy: OnRootMismatch
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    limits:
+      cpu: 500m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 64Mi
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 20
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/arch
+            operator: In
+            values:
+            - arm64
+            - amd64
+            - s390x
+            - ppc64le
+          - key: kubernetes.io/os
+            operator: In
+            values:
+            - linux
+  leaderElection:
+    enabled: true

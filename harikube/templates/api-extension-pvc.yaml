@@ -1,15 +1,13 @@
 {{- if .Values.apiExtension.create -}}
 apiVersion: v1
-kind: ServiceAccount
+kind: PersistentVolumeClaim
 metadata:
   labels:
     {{- include "harikube.labels" . | nindent 4 }}
     app.kubernetes.io/name: api-extension
     control-plane: controller-manager
-  name: api-extension-controller-manager
+  name: api-extension-decision-maker-cache
   namespace: {{ .Release.Namespace }}
-  {{- with .Values.apiExtension.serviceAccount.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+spec:
+  {{- toYaml .Values.apiExtension.pvc | nindent 2 }}
 {{- end }}

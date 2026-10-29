@@ -1,18 +1,28 @@
 suite: ServerlessKubeWatchTrigger Host RBAC Suppression when serverlessKubeWatchTrigger.create is enabled
 
-# Unit test: ensure host-side serverless-kube-watch-trigger RBAC template renders nothing when serverlessKubeWatchTrigger.create is true
-# The bootstrap flag is no longer required; suppression should occur whenever create is enabled.
+# Unit test: ensure host-side serverless-kube-watch-trigger RBAC template renders RBAC resources when serverlessKubeWatchTrigger.create is true
+# (The RBAC resources are needed in the host cluster when serverless-kube-watch-trigger is created)
 
 templates:
   - serverless-kube-watch-trigger-rbac.yaml
 
 tests:
-  - it: should not render serverless-kube-watch-trigger RBAC when serverlessKubeWatchTrigger.create is enabled
+  - it: should render serverless-kube-watch-trigger RBAC when serverlessKubeWatchTrigger.create is enabled
     templates:
       - serverless-kube-watch-trigger-rbac.yaml
     set:
       serverlessKubeWatchTrigger:
         create: true
+    asserts:
+      - hasDocuments:
+          count: 5
+
+  - it: should not render serverless-kube-watch-trigger RBAC when serverlessKubeWatchTrigger.create is disabled
+    templates:
+      - serverless-kube-watch-trigger-rbac.yaml
+    set:
+      serverlessKubeWatchTrigger:
+        create: false
     asserts:
       - hasDocuments:
           count: 0

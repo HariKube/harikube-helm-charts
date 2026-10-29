@@ -1,18 +1,28 @@
 suite: api-extension Host RBAC Suppression when apiExtension.create enabled
 
-# Unit test: ensure host-side api-extension RBAC template renders nothing when apiExtension.create is true
-# and no separate bootstrap flag is required (TDD-style; production change will update the template to satisfy this test)
+# Unit test: ensure host-side api-extension RBAC template renders RBAC resources when apiExtension.create is true
+# (The RBAC resources are needed in the host cluster when the api-extension is created)
 
 templates:
   - api-extension-rbac.yaml
 
 tests:
-  - it: should not render api-extension RBAC when apiExtension.create is enabled (no bootstrap flag needed)
+  - it: should render api-extension RBAC when apiExtension.create is enabled
     templates:
       - api-extension-rbac.yaml
     set:
       apiExtension:
         create: true
+    asserts:
+      - hasDocuments:
+          count: 8
+
+  - it: should not render api-extension RBAC when apiExtension.create is disabled
+    templates:
+      - api-extension-rbac.yaml
+    set:
+      apiExtension:
+        create: false
     asserts:
       - hasDocuments:
           count: 0
