@@ -129,7 +129,7 @@ serverlessKubeWatchTrigger:
   image:
     repository: quay.io/harikube/serverless-kube-watch-trigger
     pullPolicy: IfNotPresent
-    tag: rc-v1.0.0-11
+    tag: rc-v1.0.0-13
   args:
   - --leader-elect
   - --health-probe-bind-address=:8081
