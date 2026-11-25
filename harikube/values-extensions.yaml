@@ -131,7 +131,7 @@ serverlessKubeWatchTrigger:
     pullPolicy: IfNotPresent
     tag: rc-v1.0.0-13
   args:
-  - --leader-elect
+  - --enable-leader-election=true
   - --health-probe-bind-address=:8081
   podAnnotations: {}
   podLabels: {}
